@@ -2,7 +2,6 @@
 const http = require('http');
 const utilities = require('./controllers/utilities');
 var fs = require('fs');
-var express = require('express');
 
 //var cors = require('cors');
 
@@ -31,7 +30,7 @@ if (utilities.models.appConfig.appState == 'live') {
 } else {
   hostname = utilities.models.appConfig.testHostName;
   port = utilities.models.appConfig.testPort;
-  console.log('test server')
+  console.log('test')
 }
 
 // console.log('3')
@@ -76,23 +75,23 @@ const app = http.createServer((req, res) => {
   }
 
 
+
   // console.log('options done and dusted')
 
   // allow access after api authentication is successful
   if (utilities.validateAuth(req, utilities.models.appConfig)) {
     // validation succesful
-    //   console.log('validation successful')
+    
     let data = []
     req.on('data', chunk => {
       data.push(chunk)
     });
     req.on('end', () => {
       try {
-
-        data = JSON.parse(data)
+        
+        data = (data.length>0)?JSON.parse(data):null
 
       } catch (ex) {
-        // console.log(ex)
 
         //responseObj['data'] = data;
         responseObj['status'] = 'error';
@@ -100,11 +99,13 @@ const app = http.createServer((req, res) => {
         responseObj.headerCode = utilities.models.resCodes.invalid_data.code;
         endRequest();
       }
-      processRequest(data);
-
+      processRequest(data); 
+ 
     })
   } else {
     //validation failed
+
+    console.log('validation failed')
     responseObj['status'] = 'error';
     responseObj.message = utilities.models.resCodes['401'].message;
     responseObj.headerCode = utilities.models.resCodes['401'].code;
@@ -118,19 +119,19 @@ const app = http.createServer((req, res) => {
     //res.statusCode = 200;
     //res.setHeader('Content-Type', 'application/json');
     var url = req.url.split('/');
+
     //var fileName = '../controllers/'+String(url[1])
     var fileName = './controllers' + req.url
 
     var controller = '';
-
     try {
 
       file = require('./controllers/' + String(url[1]));
-
       // call the function using dynamic function name and dynamic module name
       //res.write('first succeed');
     } catch (ex) {
-      // console.log(ex);
+      console.log(ex);
+
       responseObj['status'] = 'error';
       responseObj.message = utilities.models.resCodes.route_not_found.message + ' ' + req.url;
       responseObj.headerCode = utilities.models.resCodes.route_not_found.code;
@@ -191,5 +192,5 @@ const app = http.createServer((req, res) => {
 //app.use(cors(corsOptions));
 
 app.listen(port, hostname, () => {
-  // console.log(`Server running at http://${hostname}:${port}/`);
+  console.log(`Server running at http://${hostname}:${port}/`);
 });

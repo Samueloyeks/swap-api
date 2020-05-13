@@ -30,7 +30,7 @@ let register = function (data) {
         }
 
         //
-        firebase.auth().createUserWithEmailAndPassword(userModel.email, userModel.password)
+        firebase.auth().createUserWithEmailAndPassword(userModel.email, userModel.password)  
             .then(function (result) {
                 userModel.uid = result.user.uid,
                     userModel.lastSeen = Date(result.user.lastLoginAt),
@@ -39,7 +39,8 @@ let register = function (data) {
 
                 delete userModel['password'];
 
-                firebase.database().ref(`/userProfile/${userModel.uid}`).set(userModel).then(() => {
+                firebase.database().ref(`/userProfiles/${result.user.uid}`).set(userModel).then(() => {
+                    console.log('saved to firebase')
                     firebase.auth().currentUser.sendEmailVerification();
                     console.log('email sent')
                 });
@@ -76,7 +77,6 @@ let register = function (data) {
 }
 
 let login = function (data) {
-
     return new Promise(function (resolve, reject) {
         let userModel = require('../models/userModel');
         userModel = userModel.user;
@@ -92,15 +92,15 @@ let login = function (data) {
         }
         firebase.auth().signInWithEmailAndPassword(userModel.email, userModel.password)
             .then(function (result) {
-                firebase.database().ref(`/userProfile/` + result.user.uid).once('value').then(function (snapshot) {
+                firebase.database().ref(`/userProfiles/` + result.user.uid).once('value').then(function (snapshot) {
                     userModel = snapshot.val();
-                    delete userModel['password'];
+                    // delete userModel['password']; 
                     userModel['uid'] = snapshot.key;
                     userModel.lastSeen = Date(result.user.lastLoginAt);
                     userModel.dateCreated = Date(result.user.createdAt);
                     userModel.verified = result.user.emailVerified;
                     if (userModel.verified) {
-                        response = {
+                        response = {  
                             status: 'success',
                             message: 'Login Successful',
                             data: userModel
@@ -159,7 +159,7 @@ let fetchUserById = function (data) {
             console.log('fetchUserById:data validation failed')
         }
 
-        firebase.database().ref(`/userProfile/` + userModel.uid).once('value').then(function (snapshot) {
+        firebase.database().ref(`/userProfiles/` + userModel.uid).once('value').then(function (snapshot) {
             //console.log('got here::fetchUserById')
             userModel = snapshot.val();
             delete userModel['password'];
@@ -210,11 +210,11 @@ let update = function (data) {
         } catch (ex) {
             // data validation failed
         }
-        firebase.database().ref(`/userProfile/` + userModel.uid).once('value').then(function (snapshot) {
+        firebase.database().ref(`/userProfiles/` + userModel.uid).once('value').then(function (snapshot) {
             userModel = snapshot.val();
             userModel = data;
             //console.log(result)
-            firebase.database().ref(`/userProfile/` + userModel.uid).update(userModel).then((result) => {
+            firebase.database().ref(`/userProfiles/` + userModel.uid).update(userModel).then((result) => {
                 response = {
                     status: 'success',
                     message: 'data updated successfully',

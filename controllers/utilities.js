@@ -19,7 +19,7 @@ exports.validateAuth = function(req,appConfig){
             // wrong credentials
             console.log('wrong credentials')
         }
-    }
+    } 
     return isValid;
 }
   

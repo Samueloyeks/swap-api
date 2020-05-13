@@ -10,10 +10,16 @@
   "author": "sam",
   "license": "ISC",
   "dependencies": {
+    "atob": "^2.1.2",
     "basic-auth": "^2.0.1",
+    "blob": "^0.1.0",
+    "cross-blob": "^1.2.2",
     "express": "^4.17.1",
     "firebase": "^7.14.2",
+    "mime": "^2.4.5",
     "nodemon": "^2.0.3",
-    "tsscmp": "^1.0.6"
+    "rn-fetch-blob": "^0.12.0",
+    "tsscmp": "^1.0.6",
+    "xhr2": "^0.2.0"
   }
 }

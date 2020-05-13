@@ -7,6 +7,8 @@ exports.user = {
     "phoneNumber":null,    
     "email":null,
     "password":null,
+    "likedItems":null,
+    "favoriteItems":null,
     "dateCreated":null,
     "lastUpdate":null,
     "items":null,
