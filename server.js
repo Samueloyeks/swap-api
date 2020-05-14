@@ -20,7 +20,7 @@ let responseObj = utilities.models.responseObj;
 let response = '';
 let port = "";
 let hostname = "";
-
+ 
 
 ///application state (live/test)
 if (utilities.models.appConfig.appState == 'live') {
@@ -190,7 +190,6 @@ const app = http.createServer((req, res) => {
   }
 });
 //app.use(cors(corsOptions));
-
 app.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });

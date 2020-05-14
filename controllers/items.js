@@ -1,7 +1,7 @@
 let utilities = require('../controllers/utilities');
 require("../models/firebase");
 let firebase = utilities.firebase;
-const uuidv4 = require('uuid/v4')
+const uuid = require('uuid');
 
 
 
@@ -14,7 +14,7 @@ let uploadItem = function (data) {
         itemModel = itemModel.item;
         try {
 
-            itemModel.id = uuidv4();
+            itemModel.id = uuid.v4()
             itemModel.title = data.title;
             itemModel.description = data.description;
             itemModel.quantity = data.quantity;
@@ -27,9 +27,17 @@ let uploadItem = function (data) {
             itemModel.swapped = false;
             itemModel.likes = 0;
 
+
         } catch (ex) {
             // data validation failed
+
             console.log('item upload:data validation failed')
+            response = {
+                status: 'error',
+                message: 'Filed to upload Item',
+                data: null
+            }
+            reject(response);
         }
         firebase.database().ref(`/items`).push(itemModel).then(function (snapshot) {
 
@@ -50,7 +58,7 @@ let getItems = async function () {
 
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
-    let usersRef = firebase.database().ref('/userProfile');
+    let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items').orderByKey();
 
     let itemsSnap = await itemsRef.once("value");
