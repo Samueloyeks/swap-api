@@ -73,7 +73,7 @@ let getItems = async function () {
             let userSnap = await usersRef.child(postedby).once("value");
             let user = userSnap.val();
 
-            items.postedby = user;
+            items[key].postedby = user;
 
 
             await Promise.all(categories.map(async function (categoryId, index) {
