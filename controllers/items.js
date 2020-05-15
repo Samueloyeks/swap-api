@@ -39,8 +39,7 @@ let uploadItem = function (data) {
             }
             reject(response);
         }
-        firebase.database().ref(`/items`).push(itemModel).then(function (snapshot) {
-
+        firebase.database().ref(`/items`).child(itemModel.id).set(itemModel).then(function (snapshot) {
             response = {
                 status: 'success',
                 message: 'Item Uploaded Successfully',
@@ -75,6 +74,19 @@ let getItems = async function () {
 
             items[key].postedby = user;
 
+            if (user.likedItems) {
+                items[key].liked = (user.likedItems[key]) ? true : false;
+            } else {
+                items[key].liked = false;
+            }
+
+            if (user.favoriteItems) {
+                items[key].favorited = (user.favoriteItems[key]) ? true : false;
+            } else {
+                items[key].favorited = false;
+            }
+
+
 
             await Promise.all(categories.map(async function (categoryId, index) {
 
@@ -106,8 +118,114 @@ let getItems = async function () {
 
 }
 
+let likeItem = function (data) {
+    return new Promise(function (resolve, reject) {
+        let response = new Object;
+        let usersRef = firebase.database().ref('/userProfiles');
+        let itemsRef = firebase.database().ref('/items');
+
+
+        usersRef.child(data.uid).child('likedItems').child(data.itemId)
+            .set({ "liked": firebase.database.ServerValue.TIMESTAMP }).then(function () {
+                var likesRef = itemsRef.child(data.itemId).child('likes');
+                var likedbyRef = itemsRef.child(data.itemId).child('likedby');
+
+                likesRef.transaction(function (likes) {
+                    likes = (likes) ? (likes + 1) : 1
+                    return likes;
+                }).then(function () {
+
+                    likedbyRef.push({ "id": data.uid }).then(function () {
+
+                        response = {
+                            status: 'success',
+                            message: 'Item liked Successfully',
+                            data: null
+                        }
+                        resolve(response);
+
+                    })
+
+                })
+            })
+    })
+}
+
+let unlikeItem = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let usersRef = firebase.database().ref('/userProfiles');
+        let itemsRef = firebase.database().ref('/items');
+
+
+        await usersRef.child(data.uid).child('likedItems').child(data.itemId).remove()
+
+        var likesRef = itemsRef.child(data.itemId).child('likes');
+        var likedbyRef = itemsRef.child(data.itemId).child('likedby');
+
+        likesRef.transaction(function (likes) {
+            likes = (likes) ? (likes - 1) : 0;
+            return likes;
+        }).then(function () {
+
+            likedbyRef.on('value', snapshot => {
+                snapshot.forEach(snap => {
+                    if (snap.val().id == data.uid) {
+                        snap.ref.remove()
+                    }
+                })
+            })
+
+            response = {
+                status: 'success',
+                message: 'Item unliked Successfully',
+                data: null
+            }
+            resolve(response);
+
+        })
+    })
+}
+
+let favoriteItem = function (data) {
+    return new Promise(function (resolve, reject) {
+        let response = new Object;
+        let usersRef = firebase.database().ref('/userProfiles');
+
+        usersRef.child(data.uid).child('favoriteItems').child(data.itemId)
+            .set({ "favorited": firebase.database.ServerValue.TIMESTAMP }).then(function () {
+                response = {
+                    status: 'success',
+                    message: 'Item favorited Successfully',
+                    data: null
+                }
+                resolve(response);
+            })
+    })
+}
+
+let unfavoriteItem = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let usersRef = firebase.database().ref('/userProfiles');
+
+        await usersRef.child(data.uid).child('favoriteItems').child(data.itemId).remove().then(function () {
+            response = {
+                status: 'success',
+                message: 'Item unfavorited Successfully',
+                data: null
+            }
+            resolve(response);
+        })
+
+    })
+}
 
 module.exports = {
     uploadItem,
-    getItems
+    getItems,
+    likeItem,
+    favoriteItem,
+    unlikeItem,
+    unfavoriteItem
 }

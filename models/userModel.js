@@ -9,10 +9,9 @@ exports.user = {
     "password":null,
     "likedItems":null,
     "favoriteItems":null,
-    "dateCreated":null,
-    "lastUpdate":null,
     "items":null,
     "lastSeen":null,
+    "dateCreated":null,
     "status":null,
     "token":null,
     "deviceDetail":null

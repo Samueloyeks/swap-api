@@ -118,6 +118,7 @@ const app = http.createServer((req, res) => {
   function processRequest(data) {
     //res.statusCode = 200;
     //res.setHeader('Content-Type', 'application/json');
+
     var url = req.url.split('/');
 
     //var fileName = '../controllers/'+String(url[1])
@@ -190,6 +191,7 @@ const app = http.createServer((req, res) => {
   }
 });
 //app.use(cors(corsOptions));
+
 app.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);
 });
