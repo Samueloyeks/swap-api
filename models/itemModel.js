@@ -16,5 +16,6 @@ exports.item = {
     "likedby":null,
     "favorited":null,
     "swapDetails":null,
-    "offers":null
+    "offers":null,
+    "timestamp":null
 } 
