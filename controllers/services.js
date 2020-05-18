@@ -15,7 +15,7 @@ let upload = async function (data) {
         if (data.image) {
             try {
 
-                var buffer = Buffer.from((data.image).substring(23), 'base64');
+                var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
 
                 // FIREBASE STORAGE 
                 const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
@@ -31,7 +31,7 @@ let upload = async function (data) {
                 // var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
                 let response = new Object();
 
-                console.log('File available at', downloadURL);
+                // console.log('File available at', downloadURL);
                 response = {
                     status: 'success',
                     message: 'Upload Successful',
