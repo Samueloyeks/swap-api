@@ -309,5 +309,4 @@ module.exports = {
     register,
     login,
     forgotPassword,
-    updateUserLocation
 }
