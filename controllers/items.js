@@ -82,7 +82,7 @@ let getItems = async function (data) {
 
     itemsSnap.forEach(function (snap) {
         let item = snap.val();
-        if(!item.swapped){
+        if (!item.swapped) {
             items.push(item);
         }
     })
@@ -328,8 +328,11 @@ let getItemsBySearch = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('title').startAt(data.searchString.toLowerCase())
-        .endAt(data.searchString.toLowerCase() + "\uf8ff")
+    let itemsRef = firebase.database().ref('/items')
+        .orderByChild('title')
+        .startAt(data.searchString.toLowerCase().trim())
+        .endAt(data.searchString.toLowerCase().trim() + "\uf8ff")
+
     let filteredItems = [];
 
     let itemsSnap = await itemsRef.once("value");
@@ -337,7 +340,7 @@ let getItemsBySearch = async function (data) {
     itemsSnap.forEach(function (snap) {
         let item = snap.val();
 
-        if(!item.swapped){
+        if (!item.swapped) {
             filteredItems.push(item);
         }
     })
@@ -357,7 +360,7 @@ let getItemsBySearch = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        
+
 
         if (user.likedItems) {
             filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
@@ -393,7 +396,7 @@ let getItemsBySearch = async function (data) {
 
     return response;
 }
- 
+
 let getItemsByPrice = async function () {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
@@ -406,7 +409,7 @@ let getItemsByPrice = async function () {
     itemsSnap.forEach(function (snap) {
         let item = snap.val();
 
-        if(!item.swapped){
+        if (!item.swapped) {
             filteredItems.push(item);
         }
     })
@@ -461,7 +464,7 @@ let getItemsByPrice = async function () {
     return response;
 }
 
-let getItemsByUid = async function(data){
+let getItemsByUid = async function (data) {
 
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
@@ -473,7 +476,7 @@ let getItemsByUid = async function(data){
 
     itemsSnap.forEach(function (snap) {
         let item = snap.val();
-        if(!item.swapped && item.postedby == data.uid){
+        if (!item.swapped && item.postedby == data.uid) {
             items.push(item);
         }
     })
@@ -528,6 +531,103 @@ let getItemsByUid = async function(data){
 
     return response;
 
+}
+
+let getItemsByFilters = async function (data) {
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let usersRef = firebase.database().ref('/userProfiles');
+    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
+    let filteredItems = [];
+
+    let itemsSnap = await itemsRef.once("value");
+
+    itemsSnap.forEach(function (snap) {
+        let item = snap.val();
+
+        // FILTER BY CATEGORIES 
+        if (!utilities.isEmpty(data.categories)) {
+            for (let i = 0; i < item.categories.length; i++) {
+                let category = item.categories[i];
+                if (data.categories[category] && !item.swapped) {
+                    filteredItems.push(item);
+                    break;
+                }
+            }
+        } else {
+            filteredItems.push(item);
+        }
+
+        // FILTER BY LOCATION 
+        if (data.filterByLocation &&
+            (data.location.latitude &&
+                data.location.longitude)) {
+            filteredItems = utilities.applyHaversine(
+                filteredItems,
+                data.location.latitude,
+                data.location.longitude
+            );
+
+            filteredItems.sort((locationA, locationB) => {
+                return locationA.distance - locationB.distance;
+            });
+        }
+
+        // FILTER BY PRICE 
+        if (data.filterByPrice) {
+            filteredItems = filteredItems.sort((a, b) => {
+                return a.price > b.price
+            })
+        }
+    })
+
+    await Promise.all(filteredItems.map(async function (filteredItem) {
+
+        let categories = filteredItem.categories
+        let postedby = filteredItem.postedby
+
+
+        let posterSnap = await usersRef.child(postedby).once("value");
+        let poster = posterSnap.val();
+
+        filteredItem.postedby = poster;
+
+        let userSnap = await usersRef.child(data.uid).once("value");
+        let user = userSnap.val();
+
+        if (user.likedItems) {
+            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.liked = false;
+        }
+
+        if (user.favoriteItems) {
+            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.favorited = false;
+        }
+
+
+        await Promise.all(categories.map(async function (categoryId, index) {
+
+            let categoriesSnap = await categoriesRef.once("value");
+            let fullCategories = categoriesSnap.val();
+
+            categories[index] = fullCategories.find(category =>
+                category.id == categoryId
+            )
+
+        }))
+    }))
+
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: filteredItems
+    }
+
+    return response;
 }
 
 let likeItem = function (data) {
@@ -599,12 +699,12 @@ let favoriteItem = function (data) {
 
         await usersRef.child(data.uid).child('favoriteItems').child(data.itemId)
             .set({ "favorited": firebase.database.ServerValue.TIMESTAMP })
-            response = {
-                status: 'success',
-                message: 'Item favorited Successfully',
-                data: null
-            }
-            resolve(response);
+        response = {
+            status: 'success',
+            message: 'Item favorited Successfully',
+            data: null
+        }
+        resolve(response);
     })
 }
 
@@ -625,7 +725,7 @@ let unfavoriteItem = function (data) {
     })
 }
 
-let sendOffer = function(data){
+let sendOffer = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
@@ -633,10 +733,10 @@ let sendOffer = function(data){
 
 
         let offer = {
-            offerItemIds : data.offerItemIds,
-            offeredby : data.offeredby,
-            postedby:data.postedby,
-            offered : new Date().toISOString()
+            offerItemIds: data.offerItemIds,
+            offeredby: data.offeredby,
+            postedby: data.postedby,
+            offered: new Date().toISOString()
         }
 
 
@@ -657,6 +757,7 @@ module.exports = {
     getItemByIndex,
     getItemsByCategory,
     getItemsBySearch,
+    getItemsByFilters,
     likeItem,
     favoriteItem,
     unlikeItem,
