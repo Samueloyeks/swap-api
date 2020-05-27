@@ -196,7 +196,7 @@ let getItemByIndex = async function (data) {
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items');
 
-    let itemSnap = await itemsRef.child(data.id).once("value");
+    let itemSnap = await itemsRef.child(data.itemId).once("value");
     let item = itemSnap.val();
 
     if (item) {
@@ -205,22 +205,24 @@ let getItemByIndex = async function (data) {
 
 
 
-        let posterSnap = await usersRef.child(postedby).once("value");
-        let poster = posterSnap.val();
+        if (data.includePoster) {
+            let posterSnap = await usersRef.child(postedby).once("value");
+            let poster = posterSnap.val();
 
-        item.postedby = poster;
+            item.postedby = poster;
+        }
 
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
         if (user.likedItems) {
-            item.liked = (user.likedItems[data.id]) ? true : false;
+            item.liked = (user.likedItems[data.itemId]) ? true : false;
         } else {
             item.liked = false;
         }
 
         if (user.favoriteItems) {
-            item.favorited = (user.favoriteItems[data.id]) ? true : false;
+            item.favorited = (user.favoriteItems[data.itemId]) ? true : false;
         } else {
             item.favorited = false;
         }
@@ -725,22 +727,91 @@ let unfavoriteItem = function (data) {
     })
 }
 
+let deleteItem = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let itemsRef = firebase.database().ref('/items');
+        let usersRef = firebase.database().ref('/userProfiles');
+
+        let swapsRef = firebase.database().ref('/swaps');
+
+
+        await itemsRef.child(data.itemId).remove()
+        await swapsRef.orderByChild('itemId').equalTo(data.itemId).once('value', async function (snap) {
+            snap.forEach(async function (swapSnap) {
+                let swap = swapSnap.val()
+                let swapKey = swapSnap.key
+                await swapsRef.child(swapKey).remove();
+                await usersRef.child(swap.offeredby).child('swaps').child(swapKey).remove();
+            })
+
+        })
+
+
+        response = {
+            status: 'success',
+            message: 'Item Deleted Successfully',
+            data: null
+        }
+        resolve(response);
+    })
+}
+
 let sendOffer = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let usersRef = firebase.database().ref('/userProfiles');
 
+        let swapsRef = firebase.database().ref('/swaps');
 
         let offer = {
+            itemId: data.itemId,
             offerItemIds: data.offerItemIds,
             offeredby: data.offeredby,
             postedby: data.postedby,
-            offered: new Date().toISOString()
+            offered: new Date().toISOString(),
+            accepted: false,
+            completed: false,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
         }
 
 
-        await itemsRef.child(data.itemId).child('offers').push(offer)
+        let itemOfferKey = await itemsRef.child(data.itemId).child('offers').push().getKey();
+        offer.offerId = itemOfferKey
+        let swapKey = await swapsRef.push().getKey();
+        offer.swapId = swapKey
+
+
+        await itemsRef.child(data.itemId).child('offers').child(itemOfferKey).set(offer);
+        let itemOfferRef = itemsRef.child(data.itemId).child('offers').child(itemOfferKey);
+
+        await itemOfferRef.once('value').then(function (snap) {
+            timestamp = snap.val().timestamp * -1
+            itemOfferRef.update({ timestamp })
+        })
+
+
+        await swapsRef.child(swapKey).set(offer);
+        let swapRef = swapsRef.child(swapKey);
+
+        await swapRef.once('value').then(function (snap) {
+            timestamp = snap.val().timestamp * -1
+            swapRef.update({ timestamp })
+        })
+
+
+        await usersRef.child(data.offeredby).child('swaps').child(swapKey).set({
+            id: swapKey,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        })
+        let userSwapRef = usersRef.child(data.offeredby).child('swaps').child(swapKey)
+
+        await userSwapRef.once('value').then(function (snap) {
+            timestamp = snap.val().timestamp * -1
+            userSwapRef.update({ timestamp })
+        })
+
 
         response = {
             status: 'success',
@@ -748,6 +819,133 @@ let sendOffer = function (data) {
             data: null
         }
         resolve(response);
+
+
+    })
+}
+
+let getItemOffers = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let itemsRef = firebase.database().ref('/items');
+        let usersRef = firebase.database().ref('/userProfiles');
+        let offersRef = itemsRef.child(data.itemId).child('offers').orderByChild('timestamp');
+
+        let offers = []
+
+        let offersSnap = await offersRef.once('value')
+
+        offersSnap.forEach(function (snap) {
+            let offer = snap.val();
+            offers.push(offer);
+        })
+
+
+
+        await Promise.all(offers.map(async function (offer) {
+            let offerItemIds = offer.offerItemIds
+            let offeredby = offer.offeredby
+            let postedby = offer.postedby
+            let items = []
+
+            await Promise.all(offerItemIds.map(async function (offerItemId) {
+                let data = {
+                    itemId: offerItemId.id,
+                    uid: postedby,
+                    includePoster: true
+                }
+
+
+                var response = await getItemByIndex(data);
+                if (response.status == 'success') {
+                    items.push(response.data)
+                } else {
+                    response = {
+                        status: 'error',
+                        message: 'Could not Load Offers',
+                        data: null
+                    }
+
+                    reject(response);
+                }
+
+            }))
+
+            offer.items = items
+
+
+            let offererSnap = await usersRef.child(offeredby).once("value");
+            let offerer = offererSnap.val();
+
+            offer.offeredby = offerer;
+
+        }))
+
+        response = {
+            status: 'success',
+            message: 'Offers Loaded',
+            data: offers
+        }
+        resolve(response);
+    })
+}
+
+let acceptOffer = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let itemsRef = firebase.database().ref('/items');
+        let offersRef = itemsRef
+            .child(data.itemId).child('offers')
+        let swapsRef = firebase.database().ref('/swaps');
+
+
+        let offerSnap = await offersRef.child(data.offerId).once("value");
+        let offer = await offerSnap.val();
+
+        if (offer) {
+            await offersRef.child(data.offerId).update({ accepted: true });
+            await swapsRef.child(data.swapId).update({ accepted: true });
+
+
+            response = {
+                status: 'success',
+                message: 'Offer Accepted Successfully',
+                data: null
+            }
+
+        } else {
+            response = {
+                status: 'error',
+                message: 'Offer has been removed',
+                data: null
+            }
+        }
+
+        resolve(response);
+
+
+    })
+}
+
+let declineOffer = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let itemsRef = firebase.database().ref('/items');
+        let offersRef = itemsRef
+            .child(data.itemId).child('offers')
+        let swapsRef = firebase.database().ref('/swaps');
+
+        await offersRef.child(data.offerId).remove();
+        await swapsRef.child(data.swapId).remove();
+
+        response = {
+            status: 'success',
+            message: 'Offer Declined',
+            data: null
+        }
+
+        resolve(response);
+
     })
 }
 
@@ -762,7 +960,11 @@ module.exports = {
     favoriteItem,
     unlikeItem,
     unfavoriteItem,
+    deleteItem,
     getItemsByPrice,
     getItemsByUid,
-    sendOffer
+    sendOffer,
+    acceptOffer,
+    declineOffer,
+    getItemOffers
 }
