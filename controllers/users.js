@@ -1,6 +1,7 @@
 let utilities = require('../controllers/utilities');
 require("../models/firebase");
 let firebase = utilities.firebase;
+let services = require('../controllers/services')
 
 /// modules
 
@@ -31,7 +32,7 @@ let register = function (data) {
         }
 
         //
-        firebase.auth().createUserWithEmailAndPassword(userModel.email, userModel.password)  
+        firebase.auth().createUserWithEmailAndPassword(userModel.email, userModel.password)
             .then(function (result) {
                 userModel.uid = result.user.uid,
                     userModel.lastSeen = Date(result.user.lastLoginAt),
@@ -52,7 +53,7 @@ let register = function (data) {
                     message: 'Registration Successful',
                     data: userModel
                 }
- 
+
                 resolve(response);
 
                 // var database = firebase.database();
@@ -101,7 +102,7 @@ let login = function (data) {
                     userModel.dateCreated = Date(result.user.createdAt);
                     userModel.verified = result.user.emailVerified;
                     if (userModel.verified) {
-                        response = {  
+                        response = {
                             status: 'success',
                             message: 'Login Successful',
                             data: userModel
@@ -193,36 +194,47 @@ let fetchUserById = function (data) {
     });
 
 }
-
+ 
 let update = function (data) {
 
-    return new Promise(function (resolve, reject) {
+    return new Promise(async function (resolve, reject) {
         let userModel = require('../models/userModel');
         userModel = userModel.user;
         let response = new Object();
+        let uid, fullName, username, phoneNumber, profilePicture;
+        let profilePictureObj;
         try {
 
-            userModel.uid = data.uid;
-            userModel.fullName = data.fullName;
-            userModel.email = data.email;
-            userModel.phoneNumber = data.phoneNumber;
+            uid = data.uid;
+            fullName = data.fullName;
+            username = data.username;
+            phoneNumber = data.phoneNumber;
+            profilePictureObj = data.profilePicture
 
         } catch (ex) {
             // data validation failed
         }
-        firebase.database().ref(`/userProfiles/` + userModel.uid).once('value').then(function (snapshot) {
-            userModel = snapshot.val();
-            userModel = data;
-            //console.log(result)
-            firebase.database().ref(`/userProfiles/` + userModel.uid).update(userModel).then((result) => {
-                response = {
-                    status: 'success',
-                    message: 'data updated successfully',
-                    data: userModel
-                }
-                resolve(response);
 
-            })
+        if (profilePictureObj.image) {
+            profilePicture = await services.upload(profilePictureObj)
+        } else {
+            profilePicture = profilePictureObj.imageUrl;
+        }
+
+
+        firebase.database().ref(`/userProfiles/` + uid).update({
+            fullName,
+            username,
+            phoneNumber,
+            profilePicture
+        }).then((result) => {
+            response = {
+                status: 'success',
+                message: 'data updated successfully',
+                data: null
+            }
+            resolve(response);
+
         }).catch(function (error) {
             // Handle Errors here.
             var message = "";
@@ -231,10 +243,11 @@ let update = function (data) {
             response = {
                 'status': 'error',
                 'message': 'an error occured during account update',
-                'data': data
+                'data': null
             }
             reject(response);
         });
+
     });
 
 }
