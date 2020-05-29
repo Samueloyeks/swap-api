@@ -96,6 +96,51 @@ let multipleUpload = function (data) {
     })
 }
 
+let multipleUploadEdit = function (data) {
+    return new Promise(async function (resolve, reject) {
+        var imageUrls = [];
+
+        if (data.images) {
+            await Promise.all(data.images.map(async (data, index) => {
+
+                if (data.image) {
+                    var response = await upload(data)
+
+                    if (response.status == 'success') {
+                        imageUrls[index] = response.data.url
+                    } else {
+                        response = {
+                            status: 'error',
+                            message: 'Could not Upload Images',
+                            data: null
+                        }
+
+                        reject(response);
+                    }
+                } else {
+                    imageUrls[index] = data.imageUrl
+                }
+
+
+
+            }))
+
+
+            response = {
+                status: 'success',
+                message: 'Uploads Successful',
+                data: { 'urls': imageUrls }
+            }
+
+            resolve(response);
+
+        } else {
+            console.log('no images')
+
+        }
+    })
+}
+
 
 let dataURItoBlob = function (data) {
     let binary = data.split(',')[1]
@@ -137,5 +182,6 @@ module.exports = {
     dataURItoBlob,
     multipleUpload,
     upload,
-    base64toBlob
+    base64toBlob,
+    multipleUploadEdit
 }

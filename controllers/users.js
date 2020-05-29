@@ -16,6 +16,7 @@ let register = function (data) {
             userModel.password = data.password;
             userModel.email = data.email;
             userModel.phoneNumber = data.phoneNumber;
+            userModel.profilePicture = data.profilePicture
 
         } catch (ex) {
             console.log('validation failed')
@@ -142,7 +143,6 @@ let login = function (data) {
     });
 
 }
-
 
 let fetchUserById = function (data) {
 

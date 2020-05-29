@@ -70,6 +70,60 @@ let uploadItem = function (data) {
 
 }
 
+let editItem = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let itemModel = require('../models/itemModel');
+        itemModel = itemModel.item;
+
+        let itemId, title, description, quantity, price, categories, images, preferences
+        try {
+
+            itemId = data.id
+            title = data.title;
+            description = data.description;
+            quantity = data.quantity;
+            price = parseInt(data.price);
+            categories = data.categories;
+            images = data.images;
+            preferences = data.preferences;
+            // itemModel.location = data.location
+
+        } catch (ex) {
+            // data validation failed
+
+            console.log('item upload:data validation failed')
+            response = {
+                status: 'error',
+                message: 'Filed to upload Item',
+                data: null
+            }
+            reject(response);
+        }
+
+
+        let itemRef = firebase.database().ref(`/items/${itemId}`);
+
+        await itemRef.update({
+            title,
+            description,
+            quantity,
+            price,
+            categories,
+            images,
+            preferences
+        })
+
+        response = {
+            status: 'success',
+            message: 'Item Edited Successfully',
+            data: null
+        }
+        resolve(response);
+
+    });
+
+}
+
 let getItems = async function (data) {
 
     let response = new Object();
@@ -478,7 +532,7 @@ let getItemsByUid = async function (data) {
 
     itemsSnap.forEach(function (snap) {
         let item = snap.val();
-        if (!item.swapped && item.postedby == data.uid) {
+        if (item.postedby == data.uid) {
             items.push(item);
         }
     })
@@ -557,7 +611,9 @@ let getItemsByFilters = async function (data) {
                 }
             }
         } else {
-            filteredItems.push(item);
+            if(!item.swapped){
+                filteredItems.push(item);
+            }
         }
 
         // FILTER BY LOCATION 
@@ -949,8 +1005,52 @@ let declineOffer = function (data) {
     })
 }
 
+let markItemAsSwapped = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object;
+        let itemsRef = firebase.database().ref('/items');
+        let offersRef = itemsRef
+            .child(data.id).child('offers')
+        let swapsRef = firebase.database().ref('/swaps');
+
+        await itemsRef.child(data.id).update({ swapped: true });
+
+        let offersSnap = await offersRef.once("value");
+
+        if(offersSnap){
+
+            offersSnap.forEach(async function (snap) {
+                let offer = snap.val();
+                let offerId = snap.key;
+                let swapId = offer.swapId;
+    
+                if (offer.accepted) {
+                    await offersRef.child(offerId).update({ completed: true });
+                    await swapsRef.child(swapId).update({ completed: true });
+                } else {
+                    await offersRef.child(offerId).remove();
+                    await swapsRef.child(swapId).remove();
+                }
+            })
+
+        }
+
+
+
+        response = {
+            status: 'success',
+            message: 'Item Marked as Swapped',
+            data: null
+        }
+
+        resolve(response);
+
+    })
+}
+
 module.exports = {
     uploadItem,
+    editItem,
     getItems,
     getItemByIndex,
     getItemsByCategory,
@@ -966,5 +1066,6 @@ module.exports = {
     sendOffer,
     acceptOffer,
     declineOffer,
-    getItemOffers
+    getItemOffers,
+    markItemAsSwapped
 }
