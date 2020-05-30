@@ -550,7 +550,76 @@ let getItemsByUid = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        item.postedby = user;
+        // item.postedby = user;
+
+        if (user.likedItems) {
+            item.liked = (user.likedItems[item.id]) ? true : false;
+        } else {
+            item.liked = false;
+        }
+
+        if (user.favoriteItems) {
+            item.favorited = (user.favoriteItems[item.id]) ? true : false;
+        } else {
+            item.favorited = false;
+        }
+
+
+
+        await Promise.all(categories.map(async function (categoryId, index) {
+
+            let categoriesSnap = await categoriesRef.once("value");
+            let fullCategories = categoriesSnap.val();
+
+            categories[index] = fullCategories.find(category =>
+                category.id == categoryId
+            )
+
+        }))
+    }))
+
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: items
+    }
+
+    return response;
+
+}
+
+let getUserItemsByUid = async function (data) {
+
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let usersRef = firebase.database().ref('/userProfiles');
+    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp')
+    let items = [];
+
+    let itemsSnap = await itemsRef.once("value");
+
+    itemsSnap.forEach(function (snap) {
+        let item = snap.val();
+        if (item.postedby == data.posterId) {
+            items.push(item);
+        }
+    })
+
+    await Promise.all(items.map(async function (item) {
+        let categories = item.categories
+        let postedby = item.postedby
+
+
+        let posterSnap = await usersRef.child(postedby).once("value");
+        let poster = posterSnap.val();
+
+        item.postedby = poster;
+
+        let userSnap = await usersRef.child(data.uid).once("value");
+        let user = userSnap.val();
+
+        // item.postedby = user;
 
         if (user.likedItems) {
             item.liked = (user.likedItems[item.id]) ? true : false;
@@ -1086,6 +1155,10 @@ let markItemAsSwapped = function (data) {
     })
 }
 
+let getSwaps = function(data){
+
+}
+
 module.exports = {
     uploadItem,
     editItem,
@@ -1101,6 +1174,7 @@ module.exports = {
     deleteItem,
     getItemsByPrice,
     getItemsByUid,
+    getUserItemsByUid,
     sendOffer,
     acceptOffer,
     declineOffer,

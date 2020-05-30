@@ -21,6 +21,7 @@ let register = function (data) {
             userModel.likes = 0
             userModel.rating = 0
             userModel.swapsCompleted = 0
+            userModel.reports = 0
 
 
         } catch (ex) {
@@ -536,31 +537,57 @@ let deleteAccount = function (data) {
     });
 }
 
-let activateLikesListener = function (data) {
-    return new Promise(function (resolve, reject) {
+let reportUser = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let reportsRef = firebase.database().ref('/reports');
+        let usersRef = firebase.database().ref('/userProfiles');
         let response = new Object();
 
-        let userRef = firebase
-            .database()
-            .ref('/userProfiles')
-            .child(data.uid);
+        data.reported = new Date().toISOString();
+        data.timestamp = firebase.database.ServerValue.TIMESTAMP;
 
-        let likesRef = userRef
-            .child('likes')
+        await reportsRef.push(data);
 
-        likesRef.on('value', function (snap) {
-
-            let likes = snap.val();
-            // console.log(likes)
-            response = {
-                status: 'success',
-                message: 'likes retrieved successfully',
-                data: likes
-            }
-            resolve(response);
+        await usersRef.child(data.offender).child('reports').transaction(function (reports) {
+            reports = (reports) ? (reports + 1) : 1
+            return reports;
         })
+
+        response = {
+            status: 'success',
+            message: 'Report Successful',
+            data: null
+        }
+        resolve(response);
+
     })
 }
+
+// let activateLikesListener = function (data) {
+//     return new Promise(function (resolve, reject) {
+//         let response = new Object();
+
+//         let userRef = firebase
+//             .database()
+//             .ref('/userProfiles')
+//             .child(data.uid);
+
+//         let likesRef = userRef
+//             .child('likes')
+
+//         likesRef.on('value', function (snap) {
+
+//             let likes = snap.val();
+//             // console.log(likes)
+//             response = {
+//                 status: 'success',
+//                 message: 'likes retrieved successfully',
+//                 data: likes
+//             }
+//             resolve(response);
+//         })
+//     })
+// }
 
 /* let forgotPassword = function(data){
     
@@ -603,5 +630,6 @@ module.exports = {
     updatePassword,
     updateEmail,
     deleteAccount,
-    activateLikesListener
+    reportUser
+    // activateLikesListener
 }
