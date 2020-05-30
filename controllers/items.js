@@ -695,11 +695,25 @@ let likeItem = function (data) {
         let itemsRef = firebase.database().ref('/items');
         var likesRef = itemsRef.child(data.itemId).child('likes');
         var likedbyRef = itemsRef.child(data.itemId).child('likedby');
+        // var postedbyRef = itemsRef.child(data.itemId).child('postedby');
+
+
 
         await usersRef.child(data.uid).child('likedItems').child(data.itemId)
             .set({ "liked": firebase.database.ServerValue.TIMESTAMP })
 
         await likesRef.transaction(function (likes) {
+            likes = (likes) ? (likes + 1) : 1
+            return likes;
+        })
+
+        let itemRef = itemsRef.child(data.itemId);
+        let itemSnap = await itemRef.once("value");
+
+        let item = itemSnap.val();
+        let postedbyId = item.postedby
+
+        await usersRef.child(postedbyId).child('likes').transaction(function (likes) {
             likes = (likes) ? (likes + 1) : 1
             return likes;
         })
@@ -728,6 +742,17 @@ let unlikeItem = function (data) {
         await usersRef.child(data.uid).child('likedItems').child(data.itemId).remove()
 
         await likesRef.transaction(function (likes) {
+            likes = (likes) ? (likes - 1) : 0;
+            return likes;
+        })
+
+        let itemRef = itemsRef.child(data.itemId);
+        let itemSnap = await itemRef.once("value");
+
+        let item = itemSnap.val();
+        let postedbyId = item.postedby
+
+        await usersRef.child(postedbyId).child('likes').transaction(function (likes) {
             likes = (likes) ? (likes - 1) : 0;
             return likes;
         })
@@ -1009,11 +1034,24 @@ let markItemAsSwapped = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
+        let usersRef = firebase.database().ref('/userProfiles');
         let offersRef = itemsRef
             .child(data.id).child('offers')
         let swapsRef = firebase.database().ref('/swaps');
 
-        await itemsRef.child(data.id).update({ swapped: true });
+        let itemRef = itemsRef.child(data.id);
+        await itemRef.update({ swapped: true });
+
+        let itemSnap = await itemRef.once("value");
+
+        let item = itemSnap.val();
+        let postedbyId = item.postedby
+
+        await usersRef.child(postedbyId).child('swapsCompleted').transaction(function (swapsCompleted) {
+            swapsCompleted = (swapsCompleted) ? (swapsCompleted + 1) : 1
+            return swapsCompleted;
+        })
+
 
         let offersSnap = await offersRef.once("value");
 

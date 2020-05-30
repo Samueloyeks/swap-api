@@ -18,6 +18,10 @@ let register = function (data) {
             userModel.email = data.email;
             userModel.phoneNumber = data.phoneNumber;
             userModel.profilePicture = data.profilePicture
+            userModel.likes = 0
+            userModel.rating = 0
+            userModel.swapsCompleted = 0
+
 
         } catch (ex) {
             console.log('validation failed')
@@ -194,15 +198,16 @@ let fetchUserById = function (data) {
     });
 
 }
- 
+
 let update = function (data) {
 
     return new Promise(async function (resolve, reject) {
-        let userModel = require('../models/userModel');
-        userModel = userModel.user;
+        // let userModel = require('../models/userModel');
+        // userModel = userModel.user;
         let response = new Object();
         let uid, fullName, username, phoneNumber, profilePicture;
         let profilePictureObj;
+
         try {
 
             uid = data.uid;
@@ -214,42 +219,149 @@ let update = function (data) {
         } catch (ex) {
             // data validation failed
         }
+        let userRef = firebase.database().ref(`/userProfiles/` + uid)
+
 
         if (profilePictureObj.image) {
-            profilePicture = await services.upload(profilePictureObj)
+            let uploadResponse = await services.upload(profilePictureObj);
+
+            if (uploadResponse.status == 'success') {
+                profilePicture = uploadResponse.data.url
+            }
+
         } else {
             profilePicture = profilePictureObj.imageUrl;
         }
 
 
-        firebase.database().ref(`/userProfiles/` + uid).update({
-            fullName,
-            username,
-            phoneNumber,
-            profilePicture
-        }).then((result) => {
-            response = {
-                status: 'success',
-                message: 'data updated successfully',
-                data: null
-            }
-            resolve(response);
+        userRef.once(('value'), async function (snap) {
+            let userData = await snap.val();
 
-        }).catch(function (error) {
-            // Handle Errors here.
-            var message = "";
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            response = {
-                'status': 'error',
-                'message': 'an error occured during account update',
-                'data': null
-            }
-            reject(response);
-        });
+            userData.fullName = fullName;
+            userData.username = username;
+            userData.phoneNumber = phoneNumber;
+            userData.profilePicture = profilePicture
+
+
+            await userRef.set(userData).then((result) => {
+
+                response = {
+                    status: 'success',
+                    message: 'data updated successfully',
+                    data: null
+                }
+                resolve(response);
+
+            }).catch(function (error) {
+                // Handle Errors here.
+                var message = "";
+                var errorCode = error.code;
+                var errorMessage = error.message;
+                response = {
+                    'status': 'error',
+                    'message': 'an error occured during account update',
+                    'data': null
+                }
+                reject(response);
+            });
+        })
 
     });
 
+}
+
+let updatePassword = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object();
+
+        try {
+
+            let credentials = await firebase.auth.EmailAuthProvider
+                .credential(data.email, data.oldPassword);
+
+            await firebase
+                .auth()
+                .signInWithEmailAndPassword(data.email, data.oldPassword)
+
+            await firebase
+                .auth()
+                .currentUser
+                .reauthenticateWithCredential(credentials).then(async function () {
+                    await firebase.auth().currentUser.updatePassword(data.newPassword).then(function () {
+                        console.log('Password Changed');
+
+                        response = {
+                            status: 'success',
+                            message: 'Password Updated Successfully',
+                            data: null
+                        }
+
+                    })
+                })
+        } catch (ex) {
+
+            // console.log(ex)
+
+            response = {
+                status: 'error',
+                message: ex.message,
+                data: null
+            }
+            resolve(response)
+        }
+
+        resolve(response)
+
+    })
+}
+
+let updateEmail = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object();
+
+        let userRef = firebase.database().ref('/userProfiles/' + data.uid);
+
+        try {
+
+            let credentials = await firebase.auth.EmailAuthProvider
+                .credential(data.oldEmail, data.password);
+
+            await firebase
+                .auth()
+                .signInWithEmailAndPassword(data.oldEmail, data.password)
+
+            await firebase
+                .auth()
+                .currentUser
+                .reauthenticateWithCredential(credentials).then(async function () {
+                    await firebase.auth().currentUser.updateEmail(data.newEmail).then(async function () {
+                        console.log('Email Changed');
+
+                        await userRef.update({ email: data.newEmail });
+                        await firebase.auth().currentUser.sendEmailVerification();
+                        response = {
+                            status: 'success',
+                            message: 'Email Updated Successfully',
+                            data: null
+                        }
+
+                    })
+                })
+        } catch (ex) {
+
+            console.log(ex.message)
+
+            response = {
+                status: 'error',
+                message: ex.message,
+                data: null
+            }
+            resolve(response)
+        }
+
+        resolve(response)
+
+    })
 }
 
 let forgotPassword = function (data) {
@@ -282,6 +394,172 @@ let forgotPassword = function (data) {
 
 
 
+}
+
+let deleteAccount = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let userModel = require('../models/userModel');
+        userModel = userModel.user;
+
+        let itemsRef = firebase.database().ref('/items');
+        let swapsRef = firebase.database().ref('/swaps');
+
+        let response = new Object();
+
+        try {
+
+            userModel.uid = data.uid;
+
+            // let credentials = await firebase.auth.EmailAuthProvider
+            //     .credential(data.email, data.oldPassword);
+
+            await firebase
+                .auth()
+                .signInWithEmailAndPassword(data.email, data.password)
+
+
+            await firebase
+                .auth()
+                .currentUser
+                .delete().then(async function () {
+                    let userRef = firebase.database().ref(`/userProfiles/` + userModel.uid);
+
+                    let userSnap = await userRef.once('value');
+
+                    let user = await userSnap.val();
+                    let userSwaps = user.swaps;
+
+                    for (var key in userSwaps) {
+
+                        await swapsRef.child(key).remove();
+
+                    }
+
+                    let itemsSnap = await itemsRef.once('value');
+                    let items = itemsSnap.val();
+
+                    for (var key in items) {
+
+                        let item = items[key]
+                        if (item.postedby == userModel.uid) {
+
+                            await itemsRef.child(key).remove();
+
+                        }
+
+                    }
+
+                    await userRef.remove()
+
+                    response = {
+                        status: 'success',
+                        message: 'Account deleted successfully',
+                        data: null
+                    }
+                    resolve(response);
+                })
+        } catch (ex) {
+
+            console.log(ex)
+
+            response = {
+                status: 'error',
+                message: ex.message,
+                data: null
+            }
+            resolve(response)
+        }
+
+        resolve(response)
+
+    })
+    return new Promise(async function (resolve, reject) {
+        let userModel = require('../models/userModel');
+        userModel = userModel.user;
+
+        let itemsRef = firebase.database().ref('/items');
+        let swapsRef = firebase.database().ref('/swaps');
+
+        let response = new Object();
+
+        try {
+
+            userModel.uid = data.uid;
+
+        } catch (ex) {
+            // data validation failed
+            console.log('fetchUserById:data validation failed')
+            response = {
+                status: 'error',
+                message: 'error deleting account',
+                data: null
+            }
+            reject(response);
+        }
+
+        let userRef = firebase.database().ref(`/userProfiles/` + userModel.uid);
+
+        let userSnap = await userRef.once('value');
+
+        let user = await userSnap.val();
+        let userSwaps = user.swaps;
+
+        for (var key in userSwaps) {
+
+            await swapsRef.child(key).remove();
+
+        }
+
+        let itemsSnap = await itemsRef.once('value');
+        let items = itemsSnap.val();
+
+        for (var key in items) {
+
+            let item = items[key]
+            if (item.postedby == userModel.uid) {
+
+                await itemsRef.child(key).remove();
+
+            }
+
+        }
+
+        await userRef.remove()
+
+        response = {
+            status: 'success',
+            message: 'Account deleted successfully',
+            data: null
+        }
+        resolve(response);
+
+    });
+}
+
+let activateLikesListener = function (data) {
+    return new Promise(function (resolve, reject) {
+        let response = new Object();
+
+        let userRef = firebase
+            .database()
+            .ref('/userProfiles')
+            .child(data.uid);
+
+        let likesRef = userRef
+            .child('likes')
+
+        likesRef.on('value', function (snap) {
+
+            let likes = snap.val();
+            // console.log(likes)
+            response = {
+                status: 'success',
+                message: 'likes retrieved successfully',
+                data: likes
+            }
+            resolve(response);
+        })
+    })
 }
 
 /* let forgotPassword = function(data){
@@ -322,4 +600,8 @@ module.exports = {
     register,
     login,
     forgotPassword,
+    updatePassword,
+    updateEmail,
+    deleteAccount,
+    activateLikesListener
 }

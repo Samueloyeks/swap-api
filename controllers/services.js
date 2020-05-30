@@ -141,7 +141,6 @@ let multipleUploadEdit = function (data) {
     })
 }
 
-
 let dataURItoBlob = function (data) {
     let binary = data.split(',')[1]
     binary = Buffer.from(binary, 'base64').toString()

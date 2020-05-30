@@ -14,6 +14,7 @@ exports.user = {
     "likes":null,
     "rating":null,
     "swaps":null,
+    "swapsCompleted":null,
     "lastSeen":null,
     "dateCreated":null,
     "status":null,
