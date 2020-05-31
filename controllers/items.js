@@ -1162,7 +1162,7 @@ let markItemAsSwapped = function (data) {
     })
 }
 
-let getSwaps = async function (data) {
+let getAllSwaps = async function (data) {
 
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
@@ -1305,6 +1305,117 @@ let withdrawOffer = async function(data){
 
 }
 
+// let getCompletedSwap = async function(data){
+
+//     let response = new Object();
+//     let swapsRef = firebase.database().ref('/swaps')
+//     let usersRef = firebase.database().ref('/userProfiles');
+//     let itemsRef = firebase.database().ref('/items')
+
+//     let swaps = [];
+
+//     let swapsSnap = await swapsRef.once("value");
+
+//     swapsSnap.forEach(function (snap) {
+//         let swap = snap.val();
+//         if (swap.offeredby == data.uid || swap.postedby == data.uid) {
+//             swaps.push(swap);
+//         }
+//     })
+
+//     await Promise.all(swaps.map(async function (swap) {
+
+//         if(swap.offeredby==data.uid){
+
+//         }else{
+
+//         }
+//         let postedby = swap.postedby
+
+//         let posterSnap = await usersRef.child(postedby).once("value");
+//         let poster = posterSnap.val();
+
+//         swap.postedby = poster;
+
+//         let userSnap = await usersRef.child(data.uid).once("value");
+//         let user = userSnap.val();
+
+//         let itemId = swap.itemId;
+//         let itemSnap = await firebase.database().ref('/items').child(itemId).once('value');
+//         let item = itemSnap.val();
+
+//         swap.item = item
+
+//         let offerItemIds = swap.offerItemIds
+//         let offerItems = []
+
+//         // item.postedby = user;
+
+//         if (user.likedItems) {
+//             swap.item.liked = (user.likedItems[swap.item.id]) ? true : false;
+//         } else {
+//             swap.item.liked = false;
+//         }
+
+//         if (user.favoriteItems) {
+//             swap.item.favorited = (user.favoriteItems[swap.item.id]) ? true : false;
+//         } else {
+//             swap.item.favorited = false;
+//         }
+
+
+
+//         await Promise.all(offerItemIds.map(async function (offerItemId, index) {
+
+//             let offerItemSnap = await firebase.database().ref('/items').child(offerItemId.id).once('value');
+//             let offerItem = offerItemSnap.val();
+
+//             let offerItemCategories = offerItem.categories
+
+//             await Promise.all(offerItemCategories.map(async function (categoryId, index) {
+
+//                 let categoriesSnap = await categoriesRef.once("value");
+//                 let fullCategories = categoriesSnap.val();
+    
+//                 offerItemCategories[index] = fullCategories.find(category =>
+//                     category.id == categoryId
+//                 )
+    
+//             }))
+
+//             offerItems.push(offerItem)
+
+//         }))
+
+//         let categories = swap.item.categories
+
+
+//         await Promise.all(categories.map(async function (categoryId, index) {
+
+//             let categoriesSnap = await categoriesRef.once("value");
+//             let fullCategories = categoriesSnap.val();
+
+//             categories[index] = fullCategories.find(category =>
+//                 category.id == categoryId
+//             )
+
+//         }))
+
+//         swap.offerItems = offerItems;
+
+//     }))
+
+
+//     response = {
+//         status: 'success',
+//         message: 'Items loaded',
+//         data: swaps
+//     }
+
+//     return response;
+
+// }
+
 module.exports = {
     uploadItem,
     editItem,
@@ -1325,7 +1436,7 @@ module.exports = {
     acceptOffer,
     declineOffer,
     getItemOffers,
-    getSwaps,
+    getAllSwaps,
     markItemAsSwapped,
     withdrawOffer
 }
