@@ -20,8 +20,16 @@ let register = function (data) {
             userModel.profilePicture = data.profilePicture
             userModel.likes = 0
             userModel.rating = 0
+            userModel.rateTable = [
+                {rating:5,count:0},
+                {rating:4,count:0},
+                {rating:3,count:0},
+                {rating:2,count:0},
+                {rating:1,count:0},
+            ]
             userModel.swapsCompleted = 0
             userModel.reports = 0
+
 
 
         } catch (ex) {

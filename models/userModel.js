@@ -13,6 +13,8 @@ exports.user = {
     "items":null,
     "likes":null,
     "rating":null,
+    "rateCount":null,
+    "rateTable":null,
     "swaps":null,
     "swapsCompleted":null,
     "reports":null,

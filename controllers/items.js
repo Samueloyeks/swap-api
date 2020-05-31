@@ -1135,11 +1135,11 @@ let markItemAsSwapped = function (data) {
                 if (offer.accepted) {
                     await offersRef.child(offerId).update({
                         completed: true,
-                        swapped :new Date().toISOString()
+                        swapped: new Date().toISOString()
                     });
                     await swapsRef.child(swapId).update({
                         completed: true,
-                        swapped : new Date().toISOString()
+                        swapped: new Date().toISOString()
                     });
                 } else {
                     await offersRef.child(offerId).remove();
@@ -1227,11 +1227,11 @@ let getAllSwaps = async function (data) {
 
                 let categoriesSnap = await categoriesRef.once("value");
                 let fullCategories = categoriesSnap.val();
-    
+
                 offerItemCategories[index] = fullCategories.find(category =>
                     category.id == categoryId
                 )
-    
+
             }))
 
             offerItems.push(offerItem)
@@ -1267,19 +1267,19 @@ let getAllSwaps = async function (data) {
 
 }
 
-let withdrawOffer = async function(data){
+let withdrawOffer = async function (data) {
 
     let response = new Object();
     let swapsRef = firebase.database().ref('/swaps')
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items')
 
-    let itemOfferRef =  itemsRef.child(data.itemId)
-    .child('offers')
-    .child(data.offerId)
-    
+    let itemOfferRef = itemsRef.child(data.itemId)
+        .child('offers')
+        .child(data.offerId)
 
-    let swapRef =  swapsRef.child(data.swapId)
+
+    let swapRef = swapsRef.child(data.swapId)
 
     let itemOfferSnap = await itemOfferRef.once("value")
     let itemOffer = await itemOfferSnap.val();
@@ -1287,14 +1287,14 @@ let withdrawOffer = async function(data){
     let offeredby = itemOffer.offeredby;
 
     let userSwapRef = usersRef
-    .child(offeredby)
-    .child('swaps')
-    .child(data.swapId)
+        .child(offeredby)
+        .child('swaps')
+        .child(data.swapId)
 
     await itemOfferRef.remove();
     await swapRef.remove();
     await userSwapRef.remove();
- 
+
     response = {
         status: 'success',
         message: 'Offer Withdrawn',
@@ -1305,116 +1305,72 @@ let withdrawOffer = async function(data){
 
 }
 
-// let getCompletedSwap = async function(data){
+let rateSwap = async function (data) {
 
-//     let response = new Object();
-//     let swapsRef = firebase.database().ref('/swaps')
-//     let usersRef = firebase.database().ref('/userProfiles');
-//     let itemsRef = firebase.database().ref('/items')
+    let response = new Object();
+    let swapsRef = firebase.database().ref('/swaps')
+    let usersRef = firebase.database().ref('/userProfiles');
+    let itemsRef = firebase.database().ref('/items')
 
-//     let swaps = [];
-
-//     let swapsSnap = await swapsRef.once("value");
-
-//     swapsSnap.forEach(function (snap) {
-//         let swap = snap.val();
-//         if (swap.offeredby == data.uid || swap.postedby == data.uid) {
-//             swaps.push(swap);
-//         }
-//     })
-
-//     await Promise.all(swaps.map(async function (swap) {
-
-//         if(swap.offeredby==data.uid){
-
-//         }else{
-
-//         }
-//         let postedby = swap.postedby
-
-//         let posterSnap = await usersRef.child(postedby).once("value");
-//         let poster = posterSnap.val();
-
-//         swap.postedby = poster;
-
-//         let userSnap = await usersRef.child(data.uid).once("value");
-//         let user = userSnap.val();
-
-//         let itemId = swap.itemId;
-//         let itemSnap = await firebase.database().ref('/items').child(itemId).once('value');
-//         let item = itemSnap.val();
-
-//         swap.item = item
-
-//         let offerItemIds = swap.offerItemIds
-//         let offerItems = []
-
-//         // item.postedby = user;
-
-//         if (user.likedItems) {
-//             swap.item.liked = (user.likedItems[swap.item.id]) ? true : false;
-//         } else {
-//             swap.item.liked = false;
-//         }
-
-//         if (user.favoriteItems) {
-//             swap.item.favorited = (user.favoriteItems[swap.item.id]) ? true : false;
-//         } else {
-//             swap.item.favorited = false;
-//         }
+    let rating = data.rating;
 
 
+    let swapSnap = await swapsRef.child(data.id).once("value");
+    let swap = await swapSnap.val();
 
-//         await Promise.all(offerItemIds.map(async function (offerItemId, index) {
-
-//             let offerItemSnap = await firebase.database().ref('/items').child(offerItemId.id).once('value');
-//             let offerItem = offerItemSnap.val();
-
-//             let offerItemCategories = offerItem.categories
-
-//             await Promise.all(offerItemCategories.map(async function (categoryId, index) {
-
-//                 let categoriesSnap = await categoriesRef.once("value");
-//                 let fullCategories = categoriesSnap.val();
-    
-//                 offerItemCategories[index] = fullCategories.find(category =>
-//                     category.id == categoryId
-//                 )
-    
-//             }))
-
-//             offerItems.push(offerItem)
-
-//         }))
-
-//         let categories = swap.item.categories
+    swap.rating = rating
 
 
-//         await Promise.all(categories.map(async function (categoryId, index) {
+    await swapsRef.child(data.id).set(swap);
 
-//             let categoriesSnap = await categoriesRef.once("value");
-//             let fullCategories = categoriesSnap.val();
-
-//             categories[index] = fullCategories.find(category =>
-//                 category.id == categoryId
-//             )
-
-//         }))
-
-//         swap.offerItems = offerItems;
-
-//     }))
+    let userSnap = await usersRef.child(data.uid).once("value")
 
 
-//     response = {
-//         status: 'success',
-//         message: 'Items loaded',
-//         data: swaps
-//     }
+    // await usersRef.child(data.uid).child('rateCount').transaction(function (rateCount) {
+    //     rateCount = (rateCount) ? (rateCount + 1) : 1
+    //     return rateCount;
+    // })
 
-//     return response;
+    let user = await userSnap.val();
+    let rateTable = user.rateTable;
 
-// }
+    for (let i = 0; i < rateTable.length; i++) {
+
+        if (rateObj[i].rating == data.rating) {
+            rateObj[i].count++;
+            break;
+        }
+
+    }
+
+    user.rateTable = rateTable
+
+    usersRef.child(data.uid).set(user)
+
+    await usersRef.child(data.uid).child('rating').transaction(function (rating) {
+
+        let totalWeight = 0;
+        let totalCount = 0;
+
+        rateTable.map(rateObj => {
+            totalWeight += rateObj.rating * rateObj.count;
+            totalCount += rateObj.count
+        })
+
+        rating = parseInt((totalWeight / totalCount).toFixed(1))
+        return rating;
+    })
+
+    response = {
+        status: 'success',
+        message: 'Swap Rated',
+        data: null
+    }
+
+    return response;
+
+}
+
 
 module.exports = {
     uploadItem,
@@ -1438,5 +1394,6 @@ module.exports = {
     getItemOffers,
     getAllSwaps,
     markItemAsSwapped,
-    withdrawOffer
+    withdrawOffer,
+    rateSwap
 }
