@@ -4,7 +4,7 @@ let firebase = utilities.firebase;
 global.XMLHttpRequest = require("xhr2");
 global.atob = require("atob");
 const Blob = require("cross-blob");
-
+const uuid = require('uuid')
 
 
 
@@ -15,20 +15,19 @@ let upload = async function (data) {
         if (data.image) {
             try {
 
-                var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
 
                 // FIREBASE STORAGE 
-                const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
-                // await imageRef.putString(base64Data[1],'base64',{'contentType':'image/jpeg'});
-                await imageRef.put(buffer, { 'contentType': 'image/png' })
-                downloadURL = await imageRef.getDownloadURL()
+                // var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
+                // const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
+                // await imageRef.put(buffer, { 'contentType': 'image/png' })
+                // downloadURL = await imageRef.getDownloadURL()
 
                 // SERVER STORAGE 
-                // var imgBaseURL = 'uploads/' + Date.now() + '.png';
-                // require("fs").writeFile(String(imgBaseURL), base64Data[1], 'base64', function (err) {
-                //     console.log(err);
-                // }); 
-                // var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
+                var imgBaseURL = 'uploads/' + uuid.v1() + '.png';
+                await writeFile(String(imgBaseURL), await data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64')
+                var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
+
+
                 let response = new Object();
 
                 // console.log('File available at', downloadURL);
@@ -175,6 +174,15 @@ let base64toBlob = function (base64Data, contentType) {
     }
     return new Blob(byteArrays, { type: contentType });
 }
+
+const writeFile = (path, data, opts = 'base64') =>
+  new Promise((resolve, reject) => {
+    require('fs').writeFile(path, data, opts, (err) => {
+      if (err) reject(err)
+      else resolve()
+    })
+  })
+
 
 
 module.exports = {

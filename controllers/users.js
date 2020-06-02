@@ -14,6 +14,7 @@ let register = function (data) {
 
             userModel.fullName = data.fullName;
             userModel.username = data.username;
+            userModel.usernameLower = data.username.toLowerCase()
             userModel.password = data.password;
             userModel.email = data.email;
             userModel.phoneNumber = data.phoneNumber;
@@ -21,11 +22,11 @@ let register = function (data) {
             userModel.likes = 0
             userModel.rating = 0
             userModel.rateTable = [
-                {rating:5,count:0},
-                {rating:4,count:0},
-                {rating:3,count:0},
-                {rating:2,count:0},
-                {rating:1,count:0},
+                { rating: 5, count: 0 },
+                { rating: 4, count: 0 },
+                { rating: 3, count: 0 },
+                { rating: 2, count: 0 },
+                { rating: 1, count: 0 },
             ]
             userModel.swapsCompleted = 0
             userModel.reports = 0
@@ -571,6 +572,62 @@ let reportUser = function (data) {
     })
 }
 
+let isUsernameTaken = function (data) {
+    return new Promise(async function (resolve, reject) {
+        let response = new Object();
+
+        let username = data.username
+        let usersRef = firebase.database().ref('/userProfiles');
+
+
+        await usersRef
+            .orderByChild('usernameLower')
+            .equalTo(username.toLowerCase())
+            .once('value')
+            .then(snapshot => {
+                snapshot.forEach(function (snap) {
+                    let id = snap.val().uid;
+
+                    if (snapshot.exists()) {
+                        if (data.uid) {
+                            if (id !== data.uid) {
+                                response = {
+                                    status: true,
+                                    message: 'username is taken',
+                                    data: null
+                                }
+                            } else {
+                                response = {
+                                    status: false,
+                                    message: 'username is available',
+                                    data: null
+                                }
+                            }
+                        } else {
+                            response = {
+                                status: true,
+                                message: 'username is taken',
+                                data: null
+                            }
+                        }
+                    } else {
+                        response = {
+                            status: false,
+                            message: 'username is available',
+                            data: null
+                        }
+                    }
+                })
+            });
+
+        resolve(response);
+
+    })
+
+}
+
+
+
 // let activateLikesListener = function (data) {
 //     return new Promise(function (resolve, reject) {
 //         let response = new Object();
@@ -638,6 +695,7 @@ module.exports = {
     updatePassword,
     updateEmail,
     deleteAccount,
-    reportUser
+    reportUser,
+    isUsernameTaken
     // activateLikesListener
 }

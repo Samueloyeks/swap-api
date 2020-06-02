@@ -757,6 +757,78 @@ let getItemsByFilters = async function (data) {
     return response;
 }
 
+let getFavoriteItems = async function (data) {
+    
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let usersRef = firebase.database().ref('/userProfiles');
+    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
+    let filteredItems = [];
+
+    let itemsSnap = await itemsRef.once("value");
+    let userSnap = await usersRef.child(data.uid).once("value");
+    let user = userSnap.val();
+
+
+    itemsSnap.forEach(function (snap) {
+        let item = snap.val();
+
+        if (user.favoriteItems && (user.favoriteItems[item.id])) {
+            filteredItems.push(item)
+        }
+
+    })
+
+    await Promise.all(filteredItems.map(async function (filteredItem) {
+
+        let categories = filteredItem.categories
+        let postedby = filteredItem.postedby
+
+
+        let posterSnap = await usersRef.child(postedby).once("value");
+        let poster = posterSnap.val();
+
+        filteredItem.postedby = poster;
+
+        let userSnap = await usersRef.child(data.uid).once("value");
+        let user = userSnap.val();
+
+        if (user.likedItems) {
+            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.liked = false;
+        }
+
+        if (user.favoriteItems) {
+            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.favorited = false;
+        }
+
+
+        await Promise.all(categories.map(async function (categoryId, index) {
+
+            let categoriesSnap = await categoriesRef.once("value");
+            let fullCategories = categoriesSnap.val();
+
+            categories[index] = fullCategories.find(category =>
+                category.id == categoryId
+            )
+
+        }))
+    }))
+
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: filteredItems
+    }
+
+    return response;
+
+}
+
 let likeItem = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
@@ -1175,18 +1247,23 @@ let getAllSwaps = async function (data) {
 
     swapsSnap.forEach(function (snap) {
         let swap = snap.val();
-        if (swap.offeredby == data.uid) {
+        if (swap.offeredby == data.uid || swap.postedby == data.uid) {
             swaps.push(swap);
         }
     })
 
     await Promise.all(swaps.map(async function (swap) {
         let postedby = swap.postedby
+        let offeredby = swap.offeredby
 
         let posterSnap = await usersRef.child(postedby).once("value");
         let poster = posterSnap.val();
 
+        let offererSnap = await usersRef.child(offeredby).once("value");
+        let offerer = offererSnap.val();
+
         swap.postedby = poster;
+        swap.offeredby = offerer
 
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
@@ -1326,22 +1403,18 @@ let rateSwap = async function (data) {
     let userSnap = await usersRef.child(data.uid).once("value")
 
 
-    // await usersRef.child(data.uid).child('rateCount').transaction(function (rateCount) {
-    //     rateCount = (rateCount) ? (rateCount + 1) : 1
-    //     return rateCount;
-    // })
 
     let user = await userSnap.val();
     let rateTable = user.rateTable;
 
-    for (let i = 0; i < rateTable.length; i++) {
+    await Promise.all(rateTable.map(rateObj => {
 
-        if (rateObj[i].rating == data.rating) {
-            rateObj[i].count++;
-            break;
+        if (rateObj.rating == data.rating) {
+            rateObj.count++;
         }
 
-    }
+    }))
+
 
     user.rateTable = rateTable
 
@@ -1352,10 +1425,10 @@ let rateSwap = async function (data) {
         let totalWeight = 0;
         let totalCount = 0;
 
-        rateTable.map(rateObj => {
+        Promise.all(rateTable.map(rateObj => {
             totalWeight += rateObj.rating * rateObj.count;
             totalCount += rateObj.count
-        })
+        }))
 
         rating = parseInt((totalWeight / totalCount).toFixed(1))
         return rating;
@@ -1380,6 +1453,7 @@ module.exports = {
     getItemsByCategory,
     getItemsBySearch,
     getItemsByFilters,
+    getFavoriteItems,
     likeItem,
     favoriteItem,
     unlikeItem,
