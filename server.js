@@ -15,6 +15,10 @@ var fs = require('fs');
   }
 } */
 
+// const options = {
+//   key: fs.readFileSync('key.pem'),
+//   cert: fs.readFileSync('cert.pem')
+// };
 
 let responseObj = utilities.models.responseObj;
 let response = '';
