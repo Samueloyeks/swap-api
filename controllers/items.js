@@ -17,11 +17,11 @@ let uploadItem = function (data) {
             // itemModel.id = uuid.v4()
             itemModel.title = data.title;
             itemModel.description = data.description;
-            itemModel.quantity = (data.quantity)?data.quantity:1
-            itemModel.price = (data.price)?parseInt(data.price):null
+            itemModel.quantity = (data.quantity) ? data.quantity : 1
+            itemModel.price = (data.price) ? parseInt(data.price) : null
             itemModel.categories = data.categories;
             itemModel.images = data.images;
-            itemModel.preferences = (data.preferences)?data.preferences:null
+            itemModel.preferences = (data.preferences) ? data.preferences : null
             itemModel.postedby = data.postedby;
             itemModel.posted = new Date().toISOString()
             itemModel.swapped = false;
@@ -81,11 +81,11 @@ let editItem = function (data) {
             itemId = data.id
             title = data.title;
             description = data.description;
-            quantity = data.quantity;
-            price = parseInt(data.price);
+            quantity = (data.quantity) ? data.quantity : 1
+            price = data.price ? parseInt(data.price) : null
             categories = data.categories;
             images = data.images;
-            preferences = data.preferences;
+            preferences = (data.preferences) ? data.preferences : null
             // itemModel.location = data.location
 
         } catch (ex) {
@@ -662,8 +662,17 @@ let getItemsByFilters = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
+    let itemsRef = firebase
+        .database()
+        .ref('/items')
+        .orderByChild('timestamp')
+        .startAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToFirst(data.pageSize)
+
     let filteredItems = [];
+    let items = [];
+    let lastItemStamp
+
 
     let itemsSnap = await itemsRef.once("value");
 
@@ -676,12 +685,14 @@ let getItemsByFilters = async function (data) {
                 let category = item.categories[i];
                 if (data.categories[category] && !item.swapped) {
                     filteredItems.push(item);
+                    items.push(item);
                     break;
                 }
             }
         } else {
             if (!item.swapped) {
                 filteredItems.push(item);
+                items.push(item);
             }
         }
 
@@ -707,6 +718,7 @@ let getItemsByFilters = async function (data) {
             })
         }
     })
+
 
     await Promise.all(filteredItems.map(async function (filteredItem) {
 
@@ -748,17 +760,31 @@ let getItemsByFilters = async function (data) {
     }))
 
 
+    if(items.length!==0){
+        let anchorItem = items.pop();
+        let anchorId = anchorItem.id;
+    
+    
+        if (items[items.length - 1]) {
+            filteredItems = filteredItems.filter(item => item.id !== anchorId)
+            lastItemStamp = anchorItem.timestamp
+        } else {
+            lastItemStamp = null
+        }
+    }
+
     response = {
         status: 'success',
         message: 'Items loaded',
-        data: filteredItems
+        data: filteredItems,
+        variable: lastItemStamp
     }
 
     return response;
 }
 
 let getFavoriteItems = async function (data) {
-    
+
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');

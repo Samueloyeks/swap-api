@@ -155,6 +155,7 @@ const app = http.createServer((req, res) => {
         responseObj.data = result['data'];
         responseObj.status = result['status'];
         responseObj.message = result.message;
+        responseObj.variable = (result.variable)?result.variable:null;
         responseObj.headerCode = utilities.models.resCodes.request_succesful.code;
 
         endRequest();

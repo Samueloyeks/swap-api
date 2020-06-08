@@ -2,7 +2,8 @@ exports.responseObj = {
     "headerCode":null,
     "status":null,
     "message":null,
-    "data":null
+    "data":null,
+    "variable":null
 }
 
 exports.headers = {
