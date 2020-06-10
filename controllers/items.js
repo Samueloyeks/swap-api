@@ -43,19 +43,33 @@ let uploadItem = function (data) {
         }
 
 
-
-
-
         let key = await firebase.database().ref(`/items`).push().getKey();
         let itemRef = firebase.database().ref(`/items/${key}`);
+        let posterRef = firebase.database().ref(`/userProfiles/${data.postedby}`);
+        let poster = (await posterRef.once("value")).val();
+        let posterItemsRef = firebase.database().ref('/usersItemsRefs').child(poster.itemsRefKey)
+        let itemLikersRefKey = await firebase.database().ref(`/itemsLikersRefs`).push().getKey();
+        let itemOffersRefKey = await firebase.database().ref(`/itemsOffersRefs`).push().getKey();
+
+
         itemModel.id = key
+        itemModel.itemLikersRefKey = itemLikersRefKey
+        itemModel.itemOffersRefKey = itemOffersRefKey
 
-        firebase.database().ref(`/items`).child(itemModel.id).set(itemModel).then(function (snapshot) {
 
-            itemRef.once('value').then(function (snap) {
+        firebase.database().ref(`/items`).child(itemModel.id).set(itemModel).then(async function (snapshot) {
+
+
+            await itemRef.once('value').then(async function (snap) {
                 timestamp = snap.val().timestamp * -1
                 itemRef.update({ timestamp })
+
+                await posterItemsRef.child(itemModel.id).set({
+                    timestamp
+                })
             })
+
+
 
             response = {
                 status: 'success',
@@ -130,6 +144,9 @@ let getItems = async function (data) {
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
     let items = [];
 
     let itemsSnap = await itemsRef.once("value");
@@ -153,14 +170,20 @@ let getItems = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        if (user.likedItems) {
-            item.liked = (user.likedItems[item.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            item.liked = (userLikedItems[item.id]) ? true : false;
         } else {
             item.liked = false;
         }
 
-        if (user.favoriteItems) {
-            item.favorited = (user.favoriteItems[item.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            item.favorited = (userFavoriteItems[item.id]) ? true : false;
         } else {
             item.favorited = false;
         }
@@ -249,6 +272,8 @@ let getItemByIndex = async function (data) {
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
 
     let itemSnap = await itemsRef.child(data.itemId).once("value");
     let item = itemSnap.val();
@@ -269,14 +294,20 @@ let getItemByIndex = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        if (user.likedItems) {
-            item.liked = (user.likedItems[data.itemId]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            item.liked = (userLikedItems[item.id]) ? true : false;
         } else {
             item.liked = false;
         }
 
-        if (user.favoriteItems) {
-            item.favorited = (user.favoriteItems[data.itemId]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            item.favorited = (userFavoriteItems[item.id]) ? true : false;
         } else {
             item.favorited = false;
         }
@@ -314,6 +345,9 @@ let getItemsByCategory = async function (data) {
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
     let filteredItems = [];
 
     let itemsSnap = await itemsRef.once("value");
@@ -345,14 +379,20 @@ let getItemsByCategory = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        if (user.likedItems) {
-            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.liked = false;
         }
 
-        if (user.favoriteItems) {
-            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.favorited = false;
         }
@@ -384,6 +424,8 @@ let getItemsBySearch = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
     let itemsRef = firebase.database().ref('/items')
         .orderByChild('title')
         .startAt(data.searchString.toLowerCase().trim())
@@ -418,14 +460,20 @@ let getItemsBySearch = async function (data) {
 
 
 
-        if (user.likedItems) {
-            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.liked = false;
         }
 
-        if (user.favoriteItems) {
-            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.favorited = false;
         }
@@ -458,6 +506,9 @@ let getItemsByPrice = async function () {
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items').orderByChild('price')
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
     let filteredItems = [];
 
     let itemsSnap = await itemsRef.once("value");
@@ -485,14 +536,21 @@ let getItemsByPrice = async function () {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        if (user.likedItems) {
-            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.liked = false;
         }
 
-        if (user.favoriteItems) {
-            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.favorited = false;
         }
@@ -525,46 +583,70 @@ let getItemsByUid = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp')
-    let items = [];
+    let itemsRef = firebase.database().ref('/items');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+    let usersItemsRefs = firebase.database().ref('/usersItemsRefs')
+    // .orderByChild('timestamp');
 
-    let itemsSnap = await itemsRef.once("value");
+    let user = (await usersRef.child(data.uid).once("value")).val()
+    let lastItemStamp
+
+
+
+    let userItemsRef = usersItemsRefs
+        .child(user.itemsRefKey)
+        .orderByChild('timestamp')
+        .startAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToFirst(data.pageSize)
+
+    let items = [];
+    let itemIds = [];
+
+
+    let itemsSnap = await userItemsRef.once("value");
 
     itemsSnap.forEach(function (snap) {
-        let item = snap.val();
-        if (item.postedby == data.uid) {
-            items.push(item);
+        if (snap.exists()) {
+            let itemId = snap.key;
+            itemIds.push(itemId);
         }
     })
 
-    await Promise.all(items.map(async function (item) {
+
+
+    await Promise.all(itemIds.map(async function (itemId, index) {
+        let itemSnap = await itemsRef.child(itemId).once("value");
+        let item = await itemSnap.val();
+
         let categories = item.categories
         let postedby = item.postedby
-
 
         let posterSnap = await usersRef.child(postedby).once("value");
         let poster = posterSnap.val();
 
         item.postedby = poster;
 
-        let userSnap = await usersRef.child(data.uid).once("value");
-        let user = userSnap.val();
+        // let userSnap = await usersRef.child(data.uid).once("value");
+        // let user = userSnap.val();
 
-        // item.postedby = user;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
 
-        if (user.likedItems) {
-            item.liked = (user.likedItems[item.id]) ? true : false;
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            item.liked = (userLikedItems[item.id]) ? true : false;
         } else {
             item.liked = false;
         }
 
-        if (user.favoriteItems) {
-            item.favorited = (user.favoriteItems[item.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            item.favorited = (userFavoriteItems[item.id]) ? true : false;
         } else {
             item.favorited = false;
         }
-
-
 
         await Promise.all(categories.map(async function (categoryId, index) {
 
@@ -576,13 +658,28 @@ let getItemsByUid = async function (data) {
             )
 
         }))
+
+        items[index] = item
     }))
+
+
+    if (items.length !== 0) {
+        let anchorItem = items.pop();
+
+        if (items[items.length - 1]) {
+            lastItemStamp = anchorItem.timestamp
+        } else {
+            items = [anchorItem]
+            lastItemStamp = null
+        }
+    }
 
 
     response = {
         status: 'success',
         message: 'Items loaded',
-        data: items
+        data: items,
+        variable: lastItemStamp
     }
 
     return response;
@@ -594,41 +691,63 @@ let getUserItemsByUid = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp')
-    let items = [];
+    let itemsRef = firebase.database().ref('/items')
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+    let usersItemsRefs = firebase.database().ref('/usersItemsRefs')
 
-    let itemsSnap = await itemsRef.once("value");
+
+    let user = (await usersRef.child(data.uid).once("value")).val()
+    let poster = (await usersRef.child(data.posterId).once("value")).val()
+
+    let userItemsRef = usersItemsRefs
+        .child(poster.itemsRefKey)
+        .orderByChild('timestamp')
+        .startAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToFirst(data.pageSize)
+
+    let lastItemStamp
+
+    let items = [];
+    let itemIds = [];
+
+    let itemsSnap = await userItemsRef.once("value");
 
     itemsSnap.forEach(function (snap) {
-        let item = snap.val();
-        if ((item.postedby == data.posterId) && !item.swapped) {
-            items.push(item);
+        if (snap.exists()) {
+            let itemId = snap.key;
+            itemIds.push(itemId);
         }
     })
 
-    await Promise.all(items.map(async function (item) {
+    await Promise.all(itemIds.map(async function (itemId, index) {
+        let itemSnap = await itemsRef.child(itemId).once("value");
+        let item = await itemSnap.val();
+
         let categories = item.categories
-        let postedby = item.postedby
 
-
-        let posterSnap = await usersRef.child(postedby).once("value");
-        let poster = posterSnap.val();
 
         item.postedby = poster;
 
-        let userSnap = await usersRef.child(data.uid).once("value");
-        let user = userSnap.val();
+        // let userSnap = await usersRef.child(data.uid).once("value");
+        // let user = userSnap.val();
 
         // item.postedby = user;
 
-        if (user.likedItems) {
-            item.liked = (user.likedItems[item.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            item.liked = (userLikedItems[item.id]) ? true : false;
         } else {
             item.liked = false;
         }
 
-        if (user.favoriteItems) {
-            item.favorited = (user.favoriteItems[item.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            item.favorited = (userFavoriteItems[item.id]) ? true : false;
         } else {
             item.favorited = false;
         }
@@ -645,13 +764,71 @@ let getUserItemsByUid = async function (data) {
             )
 
         }))
+
+        items[index] = item
+
     }))
 
+    // await Promise.all(items.map(async function (item) {
+    //     let categories = item.categories
+
+
+    //     item.postedby = poster;
+
+    //     let userSnap = await usersRef.child(data.uid).once("value");
+    //     let user = userSnap.val();
+
+    //     // item.postedby = user;
+
+    //     let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+    //     if (userLikedItemsSnap.exists()) {
+    //         let userLikedItems = userLikedItemsSnap.val();
+    //         item.liked = (userLikedItems[item.id]) ? true : false;
+    //     } else {
+    //         item.liked = false;
+    //     }
+
+    //     let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+    //     if (userFavoriteItemsSnap.exists()) {
+    //         let userFavoriteItems = userFavoriteItemsSnap.val();
+    //         item.favorited = (userFavoriteItems[item.id]) ? true : false;
+    //     } else {
+    //         item.favorited = false;
+    //     }
+
+
+
+    //     await Promise.all(categories.map(async function (categoryId, index) {
+
+    //         let categoriesSnap = await categoriesRef.once("value");
+    //         let fullCategories = categoriesSnap.val();
+
+    //         categories[index] = fullCategories.find(category =>
+    //             category.id == categoryId
+    //         )
+
+    //     }))
+    // }))
+
+
+    if (items.length !== 0) {
+        let anchorItem = items.pop();
+
+        if (items[items.length - 1]) {
+            lastItemStamp = anchorItem.timestamp
+        } else {
+            items = [anchorItem]
+            lastItemStamp = null
+        }
+    }
 
     response = {
         status: 'success',
         message: 'Items loaded',
-        data: items
+        data: items,
+        variable: lastItemStamp
     }
 
     return response;
@@ -662,6 +839,10 @@ let getItemsByFilters = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
+
     let itemsRef = firebase
         .database()
         .ref('/items')
@@ -734,17 +915,24 @@ let getItemsByFilters = async function (data) {
         let userSnap = await usersRef.child(data.uid).once("value");
         let user = userSnap.val();
 
-        if (user.likedItems) {
-            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.liked = false;
         }
 
-        if (user.favoriteItems) {
-            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.favorited = false;
         }
+
 
 
         await Promise.all(categories.map(async function (categoryId, index) {
@@ -760,11 +948,11 @@ let getItemsByFilters = async function (data) {
     }))
 
 
-    if(items.length!==0){
+    if (items.length !== 0) {
         let anchorItem = items.pop();
         let anchorId = anchorItem.id;
-    
-    
+
+
         if (items[items.length - 1]) {
             filteredItems = filteredItems.filter(item => item.id !== anchorId)
             lastItemStamp = anchorItem.timestamp
@@ -788,24 +976,37 @@ let getFavoriteItems = async function (data) {
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp');
-    let filteredItems = [];
+    let itemsRef = firebase.database().ref('/items');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
 
-    let itemsSnap = await itemsRef.once("value");
-    let userSnap = await usersRef.child(data.uid).once("value");
-    let user = userSnap.val();
+    let user = (await usersRef.child(data.uid).once("value")).val()
+    let lastItemStamp
+
+    let usersFavoritesRef = usersFavoritesRefs
+        .child(user.favoritesRefKey)
+        .orderByChild('timestamp')
+        .startAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToFirst(data.pageSize)
+
+    let filteredItems = [];
+    let filteredItemIds = []
+
+    let itemsSnap = await usersFavoritesRef.once("value");
+    // let userSnap = await usersRef.child(data.uid).once("value");
+    // let user = userSnap.val();
 
 
     itemsSnap.forEach(function (snap) {
-        let item = snap.val();
-
-        if (user.favoriteItems && (user.favoriteItems[item.id])) {
-            filteredItems.push(item)
+        if (snap.exists()) {
+            let itemId = snap.key;
+            filteredItemIds.push(itemId)
         }
-
     })
 
-    await Promise.all(filteredItems.map(async function (filteredItem) {
+    await Promise.all(filteredItemIds.map(async function (filteredItemId, index) {
+        let itemSnap = await itemsRef.child(filteredItemId).once("value");
+        let filteredItem = await itemSnap.val();
 
         let categories = filteredItem.categories
         let postedby = filteredItem.postedby
@@ -816,17 +1017,23 @@ let getFavoriteItems = async function (data) {
 
         filteredItem.postedby = poster;
 
-        let userSnap = await usersRef.child(data.uid).once("value");
-        let user = userSnap.val();
+        // let userSnap = await usersRef.child(data.uid).once("value");
+        // let user = userSnap.val();
 
-        if (user.likedItems) {
-            filteredItem.liked = (user.likedItems[filteredItem.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.liked = false;
         }
 
-        if (user.favoriteItems) {
-            filteredItem.favorited = (user.favoriteItems[filteredItem.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
         } else {
             filteredItem.favorited = false;
         }
@@ -842,13 +1049,28 @@ let getFavoriteItems = async function (data) {
             )
 
         }))
+
+        filteredItems[index] = filteredItem
     }))
+
+
+    if (filteredItems.length !== 0) {
+        let anchorItem = filteredItems.pop();
+
+        if (filteredItems[filteredItems.length - 1]) {
+            lastItemStamp = anchorItem.timestamp
+        } else {
+            filteredItems = [anchorItem]
+            lastItemStamp = null
+        }
+    }
 
 
     response = {
         status: 'success',
         message: 'Items loaded',
-        data: filteredItems
+        data: filteredItems,
+        variable: lastItemStamp
     }
 
     return response;
@@ -861,24 +1083,34 @@ let likeItem = function (data) {
         let usersRef = firebase.database().ref('/userProfiles');
         let itemsRef = firebase.database().ref('/items');
         var likesRef = itemsRef.child(data.itemId).child('likes');
-        var likedbyRef = itemsRef.child(data.itemId).child('likedby');
         // var postedbyRef = itemsRef.child(data.itemId).child('postedby');
+        let item = (await itemsRef.child(data.itemId).once("value")).val();
+
+
+        let user = (await usersRef.child(data.uid).once("value")).val()
+        let userLikesRef = firebase.database().ref('/usersLikesRefs').child(user.likesRefKey)
 
 
 
-        await usersRef.child(data.uid).child('likedItems').child(data.itemId)
-            .set({ "liked": firebase.database.ServerValue.TIMESTAMP })
+
+        await userLikesRef.child(data.itemId)
+            .set({ "timestamp": item.timestamp })
 
         await likesRef.transaction(function (likes) {
             likes = (likes) ? (likes + 1) : 1
             return likes;
         })
 
-        let itemRef = itemsRef.child(data.itemId);
-        let itemSnap = await itemRef.once("value");
+        // let itemRef = itemsRef.child(data.itemId);
+        // let itemSnap = await itemRef.once("value");
 
-        let item = itemSnap.val();
+
+        // let item = itemSnap.val();
         let postedbyId = item.postedby
+        let itemLikersRefKey = item.itemLikersRefKey
+
+        var likedbyRef = firebase.database().ref(`/itemsLikersRefs`).child(itemLikersRefKey)
+
 
         await usersRef.child(postedbyId).child('likes').transaction(function (likes) {
             likes = (likes) ? (likes + 1) : 1
@@ -903,10 +1135,12 @@ let unlikeItem = function (data) {
         let itemsRef = firebase.database().ref('/items');
 
         var likesRef = itemsRef.child(data.itemId).child('likes');
-        var likedbyRef = itemsRef.child(data.itemId).child('likedby');
+        // var likedbyRef = itemsRef.child(data.itemId).child('likedby');
 
+        let user = (await usersRef.child(data.uid).once("value")).val()
+        let userLikesRef = firebase.database().ref('/usersLikesRefs').child(user.likesRefKey)
 
-        await usersRef.child(data.uid).child('likedItems').child(data.itemId).remove()
+        await userLikesRef.child(data.itemId).remove()
 
         await likesRef.transaction(function (likes) {
             likes = (likes) ? (likes - 1) : 0;
@@ -918,6 +1152,9 @@ let unlikeItem = function (data) {
 
         let item = itemSnap.val();
         let postedbyId = item.postedby
+        let itemLikersRefKey = item.itemLikersRefKey
+
+        var likedbyRef = firebase.database().ref(`/itemsLikersRefs`).child(itemLikersRefKey)
 
         await usersRef.child(postedbyId).child('likes').transaction(function (likes) {
             likes = (likes) ? (likes - 1) : 0;
@@ -946,9 +1183,20 @@ let favoriteItem = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let usersRef = firebase.database().ref('/userProfiles');
+        let itemsRef = firebase.database().ref('/items');
 
-        await usersRef.child(data.uid).child('favoriteItems').child(data.itemId)
-            .set({ "favorited": firebase.database.ServerValue.TIMESTAMP })
+        let item = (await itemsRef.child(data.itemId).once("value")).val();
+
+
+        let user = (await usersRef.child(data.uid).once("value")).val()
+        let userFavoritesRef = firebase.database().ref('/usersFavoritesRefs').child(user.favoritesRefKey)
+
+        await userFavoritesRef.child(data.itemId)
+            .set({
+                "timestamp": item.timestamp
+            })
+
+
         response = {
             status: 'success',
             message: 'Item favorited Successfully',
@@ -963,7 +1211,10 @@ let unfavoriteItem = function (data) {
         let response = new Object;
         let usersRef = firebase.database().ref('/userProfiles');
 
-        await usersRef.child(data.uid).child('favoriteItems').child(data.itemId).remove()
+        let user = (await usersRef.child(data.uid).once("value")).val()
+        let userFavoritesRef = firebase.database().ref('/usersFavoritesRefs').child(user.favoritesRefKey)
+
+        await userFavoritesRef.child(data.itemId).remove()
 
         response = {
             status: 'success',
@@ -1010,6 +1261,9 @@ let sendOffer = function (data) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let usersRef = firebase.database().ref('/userProfiles');
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+        let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
+
 
         let swapsRef = firebase.database().ref('/swaps');
 
@@ -1025,15 +1279,17 @@ let sendOffer = function (data) {
             timestamp: firebase.database.ServerValue.TIMESTAMP
         }
 
+        let item = await (await itemsRef.child(data.itemId).once("value")).val();
+        // let itemsOffersRefKey = itemsOffersRefs.child(item.itemOffersRefKey)
 
-        let itemOfferKey = await itemsRef.child(data.itemId).child('offers').push().getKey();
+        let itemOfferKey = await itemsOffersRefs.child(item.itemOffersRefKey).push().getKey();
         offer.offerId = itemOfferKey
         let swapKey = await swapsRef.push().getKey();
         offer.swapId = swapKey
 
 
-        await itemsRef.child(data.itemId).child('offers').child(itemOfferKey).set(offer);
-        let itemOfferRef = itemsRef.child(data.itemId).child('offers').child(itemOfferKey);
+        await itemsOffersRefs.child(item.itemOffersRefKey).child(itemOfferKey).set(offer);
+        let itemOfferRef = itemsOffersRefs.child(item.itemOffersRefKey).child(itemOfferKey);
 
         await itemOfferRef.once('value').then(function (snap) {
             timestamp = snap.val().timestamp * -1
@@ -1044,22 +1300,31 @@ let sendOffer = function (data) {
         await swapsRef.child(swapKey).set(offer);
         let swapRef = swapsRef.child(swapKey);
 
-        await swapRef.once('value').then(function (snap) {
+        await swapRef.once('value').then(async function (snap) {
             timestamp = snap.val().timestamp * -1
             swapRef.update({ timestamp })
+
+            let offerer = (await usersRef.child(data.offeredby).once("value")).val();
+
+            await usersSwapsRefs.child(offerer.swapsRefKey).child(swapKey).set({
+                id: swapKey,
+                timestamp: timestamp
+            })
         })
 
 
-        await usersRef.child(data.offeredby).child('swaps').child(swapKey).set({
-            id: swapKey,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        })
-        let userSwapRef = usersRef.child(data.offeredby).child('swaps').child(swapKey)
+        // let offerer = (await usersRef.child(data.offeredby).once("value")).val();
 
-        await userSwapRef.once('value').then(function (snap) {
-            timestamp = snap.val().timestamp * -1
-            userSwapRef.update({ timestamp })
-        })
+        // await usersSwapsRefs.child(offerer.swapsRefKey).child(swapKey).set({
+        //     id: swapKey,
+        //     timestamp: firebase.database.ServerValue.TIMESTAMP
+        // })
+        // let userSwapRef = usersSwapsRefs.child(offerer.swapsRefKey).child(swapKey)
+
+        // await userSwapRef.once('value').then(function (snap) {
+        //     timestamp = snap.val().timestamp * -1
+        //     userSwapRef.update({ timestamp })
+        // })
 
 
         response = {
@@ -1078,15 +1343,29 @@ let getItemOffers = function (data) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let usersRef = firebase.database().ref('/userProfiles');
-        let offersRef = itemsRef.child(data.itemId).child('offers').orderByChild('timestamp');
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+
+        let item = (await itemsRef.child(data.itemId).once("value")).val()
+        let lastOfferStamp
+
+
+        let offersRef = itemsOffersRefs
+            .child(item.itemOffersRefKey)
+            .orderByChild('timestamp')
+            .startAt((data.lastOfferStamp) ? parseInt(data.lastOfferStamp) : null)
+            .limitToFirst(data.pageSize)
+
+        // let offersRef = itemsRef.child(data.itemId).child('offers').orderByChild('timestamp');
 
         let offers = []
 
         let offersSnap = await offersRef.once('value')
 
         offersSnap.forEach(function (snap) {
-            let offer = snap.val();
-            offers.push(offer);
+            if (snap.exists()) {
+                let offer = snap.val();
+                offers.push(offer);
+            }
         })
 
 
@@ -1130,10 +1409,22 @@ let getItemOffers = function (data) {
 
         }))
 
+        if (offers.length !== 0) {
+            let anchorOffer = offers.pop();
+
+            if (offers[offers.length - 1]) {
+                lastOfferStamp = anchorOffer.timestamp
+            } else {
+                offers = [anchorOffer]
+                lastOfferStamp = null
+            }
+        }
+
         response = {
             status: 'success',
             message: 'Offers Loaded',
-            data: offers
+            data: offers,
+            variable: lastOfferStamp
         }
         resolve(response);
     })
@@ -1143,8 +1434,13 @@ let acceptOffer = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
-        let offersRef = itemsRef
-            .child(data.itemId).child('offers')
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+
+
+        let item = (await itemsRef.child(data.itemId).once("value")).val();
+
+        let offersRef = itemsOffersRefs.child(item.itemOffersRefKey)
+
         let swapsRef = firebase.database().ref('/swaps');
 
 
@@ -1180,8 +1476,12 @@ let declineOffer = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
-        let offersRef = itemsRef
-            .child(data.itemId).child('offers')
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+
+        let item = (await itemsRef.child(data.itemId).once("value")).val();
+
+        let offersRef = itemsOffersRefs.child(item.itemOffersRefKey)
+
         let swapsRef = firebase.database().ref('/swaps');
 
         await offersRef.child(data.offerId).remove();
@@ -1203,16 +1503,20 @@ let markItemAsSwapped = function (data) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let usersRef = firebase.database().ref('/userProfiles');
-        let offersRef = itemsRef
-            .child(data.id).child('offers')
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+
+        let item = (await itemsRef.child(data.id).once("value")).val();
+
+        let offersRef = itemsOffersRefs.child(item.itemOffersRefKey)
+
         let swapsRef = firebase.database().ref('/swaps');
 
         let itemRef = itemsRef.child(data.id);
         await itemRef.update({ swapped: true });
 
-        let itemSnap = await itemRef.once("value");
+        // let itemSnap = await itemRef.once("value");
 
-        let item = itemSnap.val();
+        // let item = itemSnap.val();
         let postedbyId = item.postedby
 
         await usersRef.child(postedbyId).child('swapsCompleted').transaction(function (swapsCompleted) {
@@ -1264,21 +1568,39 @@ let getAllSwaps = async function (data) {
 
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
-    let swapsRef = firebase.database().ref('/swaps').orderByChild('timestamp')
+    let swapsRef = firebase.database().ref('/swaps')
     let usersRef = firebase.database().ref('/userProfiles');
-    let itemsRef = firebase.database().ref('/items').orderByChild('timestamp')
-    let swaps = [];
+    let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
 
-    let swapsSnap = await swapsRef.once("value");
+
+    let user = (await usersRef.child(data.uid).once("value")).val()
+    let lastSwapStamp
+
+    let userSwapsRef = usersSwapsRefs
+        .child(user.swapsRefKey)
+        .orderByChild('timestamp')
+        .startAt((data.lastSwapStamp) ? parseInt(data.lastSwapStamp) : null)
+        .limitToFirst(data.pageSize)
+
+    let swaps = [];
+    let swapIds = [];
+
+    let swapsSnap = await userSwapsRef.once("value");
 
     swapsSnap.forEach(function (snap) {
-        let swap = snap.val();
-        if (swap.offeredby == data.uid || swap.postedby == data.uid) {
-            swaps.push(swap);
+        if (snap.exists()) {
+            let swapId = snap.key;
+            swapIds.push(swapId);
         }
     })
 
-    await Promise.all(swaps.map(async function (swap) {
+
+    await Promise.all(swapIds.map(async function (swapId, index) {
+        let swapSnap = await swapsRef.child(swapId).once("value");
+        let swap = await swapSnap.val();
+
         let postedby = swap.postedby
         let offeredby = swap.offeredby
 
@@ -1291,8 +1613,8 @@ let getAllSwaps = async function (data) {
         swap.postedby = poster;
         swap.offeredby = offerer
 
-        let userSnap = await usersRef.child(data.uid).once("value");
-        let user = userSnap.val();
+        // let userSnap = await usersRef.child(data.uid).once("value");
+        // let user = userSnap.val();
 
         let itemId = swap.itemId;
         let itemSnap = await firebase.database().ref('/items').child(itemId).once('value');
@@ -1305,19 +1627,23 @@ let getAllSwaps = async function (data) {
 
         // item.postedby = user;
 
-        if (user.likedItems) {
-            swap.item.liked = (user.likedItems[swap.item.id]) ? true : false;
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            swap.item.liked = (userLikedItems[swap.item.id]) ? true : false;
         } else {
             swap.item.liked = false;
         }
 
-        if (user.favoriteItems) {
-            swap.item.favorited = (user.favoriteItems[swap.item.id]) ? true : false;
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            swap.item.favorited = (userFavoriteItems[swap.item.id]) ? true : false;
         } else {
             swap.item.favorited = false;
         }
-
-
 
         await Promise.all(offerItemIds.map(async function (offerItemId, index) {
 
@@ -1357,13 +1683,25 @@ let getAllSwaps = async function (data) {
 
         swap.offerItems = offerItems;
 
+        swaps[index] = swap
     }))
 
+    if (swaps.length !== 0) {
+        let anchorSwap = swaps.pop();
+
+        if (swaps[swaps.length - 1]) {
+            lastSwapStamp = anchorSwap.timestamp
+        } else {
+            swaps = [anchorSwap]
+            lastSwapStamp = null
+        }
+    }
 
     response = {
         status: 'success',
         message: 'Items loaded',
-        data: swaps
+        data: swaps,
+        variable: lastSwapStamp
     }
 
     return response;
@@ -1376,9 +1714,14 @@ let withdrawOffer = async function (data) {
     let swapsRef = firebase.database().ref('/swaps')
     let usersRef = firebase.database().ref('/userProfiles');
     let itemsRef = firebase.database().ref('/items')
+    let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+    let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
 
-    let itemOfferRef = itemsRef.child(data.itemId)
-        .child('offers')
+
+    let item = (await itemsRef.child(data.itemId).once("value")).val();
+
+    let itemOfferRef = itemsOffersRefs
+        .child(item.itemOffersRefKey)
         .child(data.offerId)
 
 
@@ -1387,12 +1730,12 @@ let withdrawOffer = async function (data) {
     let itemOfferSnap = await itemOfferRef.once("value")
     let itemOffer = await itemOfferSnap.val();
 
-    let offeredby = itemOffer.offeredby;
+    let offeredby = (await usersRef.child(itemOffer.offeredby).once("value")).val()
 
-    let userSwapRef = usersRef
-        .child(offeredby)
-        .child('swaps')
+    let userSwapRef = usersSwapsRefs
+        .child(offeredby.swapsRefKey)
         .child(data.swapId)
+
 
     await itemOfferRef.remove();
     await swapRef.remove();

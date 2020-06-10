@@ -6,10 +6,17 @@ let services = require('../controllers/services')
 /// modules
 
 let register = function (data) {
-    return new Promise(function (resolve, reject) {
+    return new Promise(async function (resolve, reject) {
         let userModel = require('../models/userModel');
         userModel = userModel.user;
         let response = new Object();
+        let rateTable = [
+            { rating: 5, count: 0 },
+            { rating: 4, count: 0 },
+            { rating: 3, count: 0 },
+            { rating: 2, count: 0 },
+            { rating: 1, count: 0 },
+        ]
         try {
 
             userModel.fullName = data.fullName;
@@ -21,13 +28,7 @@ let register = function (data) {
             userModel.profilePicture = data.profilePicture
             userModel.likes = 0
             userModel.rating = 0
-            userModel.rateTable = [
-                { rating: 5, count: 0 },
-                { rating: 4, count: 0 },
-                { rating: 3, count: 0 },
-                { rating: 2, count: 0 },
-                { rating: 1, count: 0 },
-            ]
+            userModel.rateTable = rateTable
             userModel.swapsCompleted = 0
             userModel.reports = 0
 
@@ -44,6 +45,19 @@ let register = function (data) {
         } else {
             userModel.status = 'active';
         }
+
+        let itemsRefKey = await firebase.database().ref(`/usersItemsRefs`).push().getKey();
+        let likesRefKey = await firebase.database().ref(`/usersLikesRefs`).push().getKey();
+        let favoritesRefKey = await firebase.database().ref(`/usersFavoritesRefs`).push().getKey();
+        let swapsRefKey = await firebase.database().ref(`/usersSwapsRefs`).push().getKey();
+
+
+        userModel.itemsRefKey = itemsRefKey
+        userModel.likesRefKey = likesRefKey
+        userModel.favoritesRefKey = favoritesRefKey
+        userModel.swapsRefKey = swapsRefKey
+
+
 
         //
         firebase.auth().createUserWithEmailAndPassword(userModel.email, userModel.password)
