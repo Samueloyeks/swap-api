@@ -22,5 +22,6 @@ exports.user = {
     "dateCreated":null,
     "status":null,
     "token":null,
-    "deviceDetail":null
+    "deviceType":null,
+    "fcmToken":null
 } 

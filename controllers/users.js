@@ -26,6 +26,8 @@ let register = function (data) {
             userModel.email = data.email;
             userModel.phoneNumber = data.phoneNumber;
             userModel.profilePicture = data.profilePicture
+            userModel.fcmToken = data.fcmToken
+            userModel.deviceType = data.deviceType
             userModel.likes = 0
             userModel.rating = 0
             userModel.rateTable = rateTable
@@ -35,6 +37,7 @@ let register = function (data) {
 
 
         } catch (ex) {
+            console.log(ex)
             console.log('validation failed')
             // data validation failed
         }
@@ -245,7 +248,7 @@ let update = function (data) {
         }
         let userRef = firebase.database().ref(`/userProfiles/` + uid)
 
-
+ 
         if (profilePictureObj.image) {
             let uploadResponse = await services.upload(profilePictureObj);
 
@@ -266,10 +269,9 @@ let update = function (data) {
             userData.phoneNumber = phoneNumber;
             userData.profilePicture = profilePicture
 
-
             await userRef.set(userData).then((result) => {
 
-                response = {
+                response = { 
                     status: 'success',
                     message: 'data updated successfully',
                     data: null
@@ -640,6 +642,29 @@ let isUsernameTaken = function (data) {
 
 }
 
+let updateFcmToken = function (data){
+    return new Promise(async function (resolve, reject) {
+        let response = new Object();
+
+        let fcmToken = data.fcmToken
+        let uid = data.uid
+
+        let usersRef = firebase.database().ref('/userProfiles');
+
+        await usersRef.child(uid).update({
+            fcmToken
+        })
+
+        response = {
+            status: true,
+            message: 'fcmToken updated',
+            data: null
+        }
+
+        resolve(response);
+    })
+}
+
 
 
 // let activateLikesListener = function (data) {
@@ -710,6 +735,7 @@ module.exports = {
     updateEmail,
     deleteAccount,
     reportUser,
-    isUsernameTaken
+    isUsernameTaken,
+    updateFcmToken
     // activateLikesListener
 }
