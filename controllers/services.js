@@ -11,26 +11,22 @@ const uuid = require('uuid')
 
 let upload = async function (data) {
     return new Promise(async function (resolve, reject) {
+        let response = new Object();
 
         if (data.image) {
             try {
 
-
                 // FIREBASE STORAGE 
-                var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
+                var buffer = awaitBuffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
                 const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
-                await imageRef.put(buffer, { 'contentType': 'image/png' })
-                downloadURL = await imageRef.getDownloadURL()
+                await imageRef.put(buffer, { 'contentType': 'image/png' });
+                downloadURL = await imageRef.getDownloadURL();
 
                 // SERVER STORAGE 
                 // var imgBaseURL = 'uploads/' + uuid.v1() + '.png';
                 // await writeFile(String(imgBaseURL), await data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64')
                 // var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
 
-
-                let response = new Object();
-
-                // console.log('File available at', downloadURL);
                 response = {
                     status: 'success',
                     message: 'Upload Successful',
@@ -59,14 +55,15 @@ let upload = async function (data) {
 
 let multipleUpload = function (data) {
     return new Promise(async function (resolve, reject) {
+        let response = new Object();
         var imageUrls = [];
 
         if (data.images) {
             await Promise.all(data.images.map(async (data,index) => {
-                var response = await upload(data)
+                var uploadResponse = await upload(data);
 
-                if (response.status == 'success') {
-                    imageUrls[index] = response.data.url
+                if (uploadResponse.status == 'success') {
+                    imageUrls[index] = await uploadResponse.data.url
                     // imageUrls.push(response.data.url)
                 } else {
                     response = {

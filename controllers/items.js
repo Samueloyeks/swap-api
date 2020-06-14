@@ -152,9 +152,11 @@ let getItems = async function (data) {
     let itemsSnap = await itemsRef.once("value");
 
     itemsSnap.forEach(function (snap) {
-        let item = snap.val();
-        if (!item.swapped) {
-            items.push(item);
+        if(snap.exists()){
+            let item = snap.val();
+            if (!item.swapped) {
+                items.push(item);
+            }
         }
     })
 
