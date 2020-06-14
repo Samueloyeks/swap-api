@@ -581,7 +581,6 @@ let getItemsByPrice = async function () {
 }
 
 let getItemsByUid = async function (data) {
-
     let response = new Object();
     let categoriesRef = firebase.database().ref('/categories');
     let usersRef = firebase.database().ref('/userProfiles');
@@ -595,7 +594,6 @@ let getItemsByUid = async function (data) {
     let lastItemStamp
 
 
-
     let userItemsRef = usersItemsRefs
         .child(user.itemsRefKey)
         .orderByChild('timestamp')
@@ -607,7 +605,7 @@ let getItemsByUid = async function (data) {
 
 
     let itemsSnap = await userItemsRef.once("value");
-
+   
     itemsSnap.forEach(function (snap) {
         if (snap.exists()) {
             let itemId = snap.key;
@@ -616,52 +614,54 @@ let getItemsByUid = async function (data) {
     })
 
 
-
     await Promise.all(itemIds.map(async function (itemId, index) {
         let itemSnap = await itemsRef.child(itemId).once("value");
-        let item = await itemSnap.val();
 
-        let categories = item.categories
-        let postedby = item.postedby
+        if(itemSnap.exists()){
+            let item = await itemSnap.val();
 
-        let posterSnap = await usersRef.child(postedby).once("value");
-        let poster = posterSnap.val();
-
-        item.postedby = poster;
-
-        // let userSnap = await usersRef.child(data.uid).once("value");
-        // let user = userSnap.val();
-
-        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
-
-        if (userLikedItemsSnap.exists()) {
-            let userLikedItems = userLikedItemsSnap.val();
-            item.liked = (userLikedItems[item.id]) ? true : false;
-        } else {
-            item.liked = false;
+            let categories = item.categories
+            let postedby = item.postedby
+    
+            let posterSnap = await usersRef.child(postedby).once("value");
+            let poster = posterSnap.val();
+    
+            item.postedby = poster;
+    
+            // let userSnap = await usersRef.child(data.uid).once("value");
+            // let user = userSnap.val();
+    
+            let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+    
+            if (userLikedItemsSnap.exists()) {
+                let userLikedItems = userLikedItemsSnap.val();
+                item.liked = (userLikedItems[item.id]) ? true : false;
+            } else {
+                item.liked = false;
+            }
+    
+            let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+    
+            if (userFavoriteItemsSnap.exists()) {
+                let userFavoriteItems = userFavoriteItemsSnap.val();
+                item.favorited = (userFavoriteItems[item.id]) ? true : false;
+            } else {
+                item.favorited = false;
+            }
+     
+            await Promise.all(categories.map(async function (categoryId, index) {
+    
+                let categoriesSnap = await categoriesRef.once("value");
+                let fullCategories = categoriesSnap.val();
+    
+                categories[index] = fullCategories.find(category =>
+                    category.id == categoryId
+                )
+    
+            }))
+    
+            items[index] = item
         }
-
-        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
-
-        if (userFavoriteItemsSnap.exists()) {
-            let userFavoriteItems = userFavoriteItemsSnap.val();
-            item.favorited = (userFavoriteItems[item.id]) ? true : false;
-        } else {
-            item.favorited = false;
-        }
- 
-        await Promise.all(categories.map(async function (categoryId, index) {
-
-            let categoriesSnap = await categoriesRef.once("value");
-            let fullCategories = categoriesSnap.val();
-
-            categories[index] = fullCategories.find(category =>
-                category.id == categoryId
-            )
-
-        }))
-
-        items[index] = item
     }))
 
 
@@ -724,50 +724,52 @@ let getUserItemsByUid = async function (data) {
 
     await Promise.all(itemIds.map(async function (itemId, index) {
         let itemSnap = await itemsRef.child(itemId).once("value");
-        let item = await itemSnap.val();
+        if(itemSnap.exists()){
+            let item = await itemSnap.val();
 
-        let categories = item.categories
-
-
-        item.postedby = poster;
-
-        // let userSnap = await usersRef.child(data.uid).once("value");
-        // let user = userSnap.val();
-
-        // item.postedby = user;
-
-        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
-
-        if (userLikedItemsSnap.exists()) {
-            let userLikedItems = userLikedItemsSnap.val();
-            item.liked = (userLikedItems[item.id]) ? true : false;
-        } else {
-            item.liked = false;
+            let categories = item.categories
+    
+    
+            item.postedby = poster;
+    
+            // let userSnap = await usersRef.child(data.uid).once("value");
+            // let user = userSnap.val();
+    
+            // item.postedby = user;
+    
+            let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+    
+            if (userLikedItemsSnap.exists()) {
+                let userLikedItems = userLikedItemsSnap.val();
+                item.liked = (userLikedItems[item.id]) ? true : false;
+            } else {
+                item.liked = false;
+            }
+    
+            let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+    
+            if (userFavoriteItemsSnap.exists()) {
+                let userFavoriteItems = userFavoriteItemsSnap.val();
+                item.favorited = (userFavoriteItems[item.id]) ? true : false;
+            } else {
+                item.favorited = false;
+            }
+    
+    
+    
+            await Promise.all(categories.map(async function (categoryId, index) {
+    
+                let categoriesSnap = await categoriesRef.once("value");
+                let fullCategories = categoriesSnap.val();
+    
+                categories[index] = fullCategories.find(category =>
+                    category.id == categoryId
+                )
+    
+            }))
+    
+            items[index] = item
         }
-
-        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
-
-        if (userFavoriteItemsSnap.exists()) {
-            let userFavoriteItems = userFavoriteItemsSnap.val();
-            item.favorited = (userFavoriteItems[item.id]) ? true : false;
-        } else {
-            item.favorited = false;
-        }
-
-
-
-        await Promise.all(categories.map(async function (categoryId, index) {
-
-            let categoriesSnap = await categoriesRef.once("value");
-            let fullCategories = categoriesSnap.val();
-
-            categories[index] = fullCategories.find(category =>
-                category.id == categoryId
-            )
-
-        }))
-
-        items[index] = item
 
     }))
 
@@ -1008,51 +1010,53 @@ let getFavoriteItems = async function (data) {
 
     await Promise.all(filteredItemIds.map(async function (filteredItemId, index) {
         let itemSnap = await itemsRef.child(filteredItemId).once("value");
-        let filteredItem = await itemSnap.val();
+        if(itemSnap.exists()){
+            let filteredItem = await itemSnap.val();
 
-        let categories = filteredItem.categories
-        let postedby = filteredItem.postedby
-
-
-        let posterSnap = await usersRef.child(postedby).once("value");
-        let poster = posterSnap.val();
-
-        filteredItem.postedby = poster;
-
-        // let userSnap = await usersRef.child(data.uid).once("value");
-        // let user = userSnap.val();
-
-        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
-
-        if (userLikedItemsSnap.exists()) {
-            let userLikedItems = userLikedItemsSnap.val();
-            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
-        } else {
-            filteredItem.liked = false;
+            let categories = filteredItem.categories
+            let postedby = filteredItem.postedby
+    
+    
+            let posterSnap = await usersRef.child(postedby).once("value");
+            let poster = posterSnap.val();
+    
+            filteredItem.postedby = poster;
+    
+            // let userSnap = await usersRef.child(data.uid).once("value");
+            // let user = userSnap.val();
+    
+            let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+    
+            if (userLikedItemsSnap.exists()) {
+                let userLikedItems = userLikedItemsSnap.val();
+                filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
+            } else {
+                filteredItem.liked = false;
+            }
+    
+            let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+    
+            if (userFavoriteItemsSnap.exists()) {
+                let userFavoriteItems = userFavoriteItemsSnap.val();
+                filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
+            } else {
+                filteredItem.favorited = false;
+            }
+    
+    
+            await Promise.all(categories.map(async function (categoryId, index) {
+    
+                let categoriesSnap = await categoriesRef.once("value");
+                let fullCategories = categoriesSnap.val();
+    
+                categories[index] = fullCategories.find(category =>
+                    category.id == categoryId
+                )
+    
+            }))
+    
+            filteredItems[index] = filteredItem
         }
-
-        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
-
-        if (userFavoriteItemsSnap.exists()) {
-            let userFavoriteItems = userFavoriteItemsSnap.val();
-            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
-        } else {
-            filteredItem.favorited = false;
-        }
-
-
-        await Promise.all(categories.map(async function (categoryId, index) {
-
-            let categoriesSnap = await categoriesRef.once("value");
-            let fullCategories = categoriesSnap.val();
-
-            categories[index] = fullCategories.find(category =>
-                category.id == categoryId
-            )
-
-        }))
-
-        filteredItems[index] = filteredItem
     }))
 
 
