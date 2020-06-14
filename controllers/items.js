@@ -613,7 +613,6 @@ let getItemsByUid = async function (data) {
         }
     })
 
-
     await Promise.all(itemIds.map(async function (itemId, index) {
         let itemSnap = await itemsRef.child(itemId).once("value");
 
@@ -663,7 +662,6 @@ let getItemsByUid = async function (data) {
             items[index] = item
         }
     }))
-
 
     if (items.length !== 0) {
         let anchorItem = items.pop();
@@ -1237,9 +1235,11 @@ let deleteItem = function (data) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let usersRef = firebase.database().ref('/userProfiles');
-
         let swapsRef = firebase.database().ref('/swaps');
+        let itemsLikersRefs = firebase.database().ref(`/itemsLikersRefs`)
+        let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
 
+        let item = (await itemsRef.child(data.itemId).once("value")).val()
 
         await itemsRef.child(data.itemId).remove()
         await swapsRef.orderByChild('itemId').equalTo(data.itemId).once('value', async function (snap) {
@@ -1251,6 +1251,8 @@ let deleteItem = function (data) {
             })
 
         })
+         itemsLikersRefs.child(item.itemLikersRefKey).remove();
+         itemsOffersRefs.child(item.itemOffersRefKey).remove();
 
 
         response = {

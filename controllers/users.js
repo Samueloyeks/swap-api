@@ -132,6 +132,12 @@ let login = function (data) {
                     userModel.lastSeen = Date(result.user.lastLoginAt);
                     userModel.dateCreated = Date(result.user.createdAt);
                     userModel.verified = result.user.emailVerified;
+
+                    firebase.database().ref(`/userProfiles/` + result.user.uid).update({
+                        fcmToken:data.fcmToken,
+                        deviceType:data.deviceType
+                    })
+
                     if (userModel.verified) {
                         response = {
                             status: 'success',
