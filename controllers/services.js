@@ -17,7 +17,7 @@ let upload = async function (data) {
             try {
 
                 // FIREBASE STORAGE 
-                var buffer = awaitBuffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
+                var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
                 const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
                 await imageRef.put(buffer, { 'contentType': 'image/png' });
                 downloadURL = await imageRef.getDownloadURL();
