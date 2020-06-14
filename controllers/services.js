@@ -17,15 +17,15 @@ let upload = async function (data) {
 
 
                 // FIREBASE STORAGE 
-                // var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
-                // const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
-                // await imageRef.put(buffer, { 'contentType': 'image/png' })
-                // downloadURL = await imageRef.getDownloadURL()
+                var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
+                const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
+                await imageRef.put(buffer, { 'contentType': 'image/png' })
+                downloadURL = await imageRef.getDownloadURL()
 
                 // SERVER STORAGE 
-                var imgBaseURL = 'uploads/' + uuid.v1() + '.png';
-                await writeFile(String(imgBaseURL), await data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64')
-                var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
+                // var imgBaseURL = 'uploads/' + uuid.v1() + '.png';
+                // await writeFile(String(imgBaseURL), await data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64')
+                // var downloadURL = 'http://' + global.serverURL + '/' + imgBaseURL;
 
 
                 let response = new Object();
@@ -37,7 +37,7 @@ let upload = async function (data) {
                     data: { 'url': downloadURL }
                 }
 
-                resolve(response);
+                resolve(response); 
 
             } catch (ex) {
                 console.log(ex)
