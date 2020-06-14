@@ -72,10 +72,10 @@ exports.appConfig={
     appState:'test',
     serverURL:global.serverURL,
     liveHostName:'0.0.0.0',
-    livePort:3000,
+    livePort:process.env.PORT || 3000,
     testHostName:'127.0.0.1', 
     // testHostName:'192.168.56.1',
-    testPort:3000,
+    testPort:process.env.PORT || 3000,
     apiUser:"am9objpzbWl0aA==",
     apiPass:"JiZAQEFBMTE6NjcmOCMh"
 }
