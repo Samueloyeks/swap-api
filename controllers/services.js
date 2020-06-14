@@ -10,7 +10,7 @@ const uuid = require('uuid')
 
 
 let upload = async function (data) {
-    return new Promise(async function (resolve, reject) {
+    // return new Promise(async function (resolve, reject) {
         let response = new Object();
         let downloadURL = null
 
@@ -34,7 +34,8 @@ let upload = async function (data) {
                     data: { 'url': downloadURL }
                 }
 
-                resolve(response); 
+                // resolve(response); 
+                return response;
 
             } catch (ex) {
                 console.log(ex)
@@ -44,13 +45,14 @@ let upload = async function (data) {
                     data: null
                 }
 
-                reject(response);
+                // reject(response);
+                return response;
             }
 
         } else {
             console.log('no image')
         }
-    });
+    // });
 
 };
 
