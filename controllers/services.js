@@ -12,6 +12,7 @@ const uuid = require('uuid')
 let upload = async function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object();
+        let downloadURL = null
 
         if (data.image) {
             try {
