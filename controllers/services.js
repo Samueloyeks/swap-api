@@ -10,7 +10,7 @@ const uuid = require('uuid')
 
 
 let upload = async function (data) {
-    // return new Promise(async function (resolve, reject) {
+    return new Promise(async function (resolve, reject) {
         let response = new Object();
         let downloadURL = null
 
@@ -19,7 +19,7 @@ let upload = async function (data) {
 
                 // FIREBASE STORAGE 
                 var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
-                const imageRef = firebase.storage().ref(`items/${Date.now()}.png`);
+                const imageRef = firebase.storage().ref(`items/${uuid.v1()}.png`);
                 await imageRef.put(buffer, { 'contentType': 'image/png' });
                 downloadURL = await imageRef.getDownloadURL();
 
@@ -34,8 +34,7 @@ let upload = async function (data) {
                     data: { 'url': downloadURL }
                 }
 
-                // resolve(response); 
-                return response;
+                resolve(response); 
 
             } catch (ex) {
                 console.log(ex)
@@ -45,14 +44,14 @@ let upload = async function (data) {
                     data: null
                 }
 
-                // reject(response);
-                return response;
+                reject(response);
+
             }
 
         } else {
             console.log('no image')
         }
-    // });
+    });
 
 };
 
