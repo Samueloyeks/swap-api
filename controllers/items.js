@@ -973,6 +973,133 @@ let getItemsByFilters = async function (data) {
     return response;
 }
 
+let silentlyGetItemsByFilters = async function (data) {
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let usersRef = firebase.database().ref('/userProfiles');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
+
+    let itemsRef = firebase
+        .database()
+        .ref('/items')
+        .orderByChild('timestamp')
+        .endAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToLast(data.pageSize)
+
+    let filteredItems = [];
+    let items = [];
+    let lastItemStamp
+
+
+    let itemsSnap = await itemsRef.once("value");
+
+    itemsSnap.forEach(function (snap) {
+        let item = snap.val();
+
+        // FILTER BY CATEGORIES 
+        if (!utilities.isEmpty(data.categories)) {
+            for (let i = 0; i < item.categories.length; i++) {
+                let category = item.categories[i];
+                if (data.categories[category] && !item.swapped) {
+                    filteredItems.push(item);
+                    items.push(item);
+                    break;
+                }
+            }
+        } else {
+            if (!item.swapped) {
+                filteredItems.push(item);
+                items.push(item);
+            }
+        }
+
+        // FILTER BY LOCATION 
+        if (data.filterByLocation &&
+            (data.location.latitude &&
+                data.location.longitude)) {
+            filteredItems = utilities.applyHaversine(
+                filteredItems,
+                data.location.latitude,
+                data.location.longitude
+            );
+
+            filteredItems.sort((locationA, locationB) => {
+                return locationA.distance - locationB.distance;
+            });
+        }
+
+        // FILTER BY PRICE 
+        if (data.filterByPrice) {
+            filteredItems = filteredItems.sort((a, b) => {
+                return a.price > b.price
+            })
+        }
+    })
+
+
+    await Promise.all(filteredItems.map(async function (filteredItem) {
+
+        let categories = filteredItem.categories
+        let postedby = filteredItem.postedby
+
+
+        let posterSnap = await usersRef.child(postedby).once("value");
+        let poster = posterSnap.val();
+
+        filteredItem.postedby = poster;
+
+        let userSnap = await usersRef.child(data.uid).once("value");
+        let user = userSnap.val();
+
+        let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+        if (userLikedItemsSnap.exists()) {
+            let userLikedItems = userLikedItemsSnap.val();
+            filteredItem.liked = (userLikedItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.liked = false;
+        }
+
+        let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+        if (userFavoriteItemsSnap.exists()) {
+            let userFavoriteItems = userFavoriteItemsSnap.val();
+            filteredItem.favorited = (userFavoriteItems[filteredItem.id]) ? true : false;
+        } else {
+            filteredItem.favorited = false;
+        }
+
+
+
+        await Promise.all(categories.map(async function (categoryId, index) {
+
+            let categoriesSnap = await categoriesRef.once("value");
+            let fullCategories = categoriesSnap.val();
+
+            categories[index] = fullCategories.find(category =>
+                category.id == categoryId
+            )
+
+        }))
+    }))
+
+
+    if (filteredItems.length !== 0) {
+        filteredItems.pop();
+    }
+
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: filteredItems,
+    }
+
+    return response;
+}
+
 let getFavoriteItems = async function (data) {
 
     let response = new Object();
@@ -1832,6 +1959,7 @@ module.exports = {
     getItemsByCategory,
     getItemsBySearch,
     getItemsByFilters,
+    silentlyGetItemsByFilters,
     getFavoriteItems,
     likeItem,
     favoriteItem,

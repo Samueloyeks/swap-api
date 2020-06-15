@@ -97,16 +97,17 @@ let multipleUpload = function (data) {
 
 let multipleUploadEdit = function (data) {
     return new Promise(async function (resolve, reject) {
+        let response = new Object();
         var imageUrls = [];
 
         if (data.images) {
             await Promise.all(data.images.map(async (data, index) => {
 
                 if (data.image) {
-                    var response = await upload(data)
+                    var uploadResponse = await upload(data)
 
-                    if (response.status == 'success') {
-                        imageUrls[index] = response.data.url
+                    if (uploadResponse.status == 'success') {
+                        imageUrls[index] = uploadResponse.data.url
                     } else {
                         response = {
                             status: 'error',
