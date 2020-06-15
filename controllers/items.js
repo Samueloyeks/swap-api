@@ -1365,19 +1365,26 @@ let deleteItem = function (data) {
         let swapsRef = firebase.database().ref('/swaps');
         let itemsLikersRefs = firebase.database().ref(`/itemsLikersRefs`)
         let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+        let usersItemsRefs = firebase.database().ref(`/usersItemsRefs`)
+        let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
+
 
         let item = (await itemsRef.child(data.itemId).once("value")).val()
+        let user = (await usersRef.child(item.postedby).once("value")).val()
 
         await itemsRef.child(data.itemId).remove()
         await swapsRef.orderByChild('itemId').equalTo(data.itemId).once('value', async function (snap) {
             snap.forEach(async function (swapSnap) {
                 let swap = swapSnap.val()
-                let swapKey = swapSnap.key
+                let swapKey = swapSnap.key;
+                let offeredby = (await usersRef.child(swap.offeredby).once("value")).val();
+
+                await usersSwapsRefs.child(offeredby.swapsRefKey).child(swapKey).remove()
                 await swapsRef.child(swapKey).remove();
-                await usersRef.child(swap.offeredby).child('swaps').child(swapKey).remove();
             })
 
         })
+        await usersItemsRefs.child(user.itemsRefKey).child(data.itemId).remove()
          itemsLikersRefs.child(item.itemLikersRefKey).remove();
          itemsOffersRefs.child(item.itemOffersRefKey).remove();
 
@@ -1612,15 +1619,17 @@ let declineOffer = function (data) {
         let response = new Object;
         let itemsRef = firebase.database().ref('/items');
         let itemsOffersRefs = firebase.database().ref(`/itemsOffersRefs`)
+        let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
+        let swapsRef = firebase.database().ref('/swaps');
 
         let item = (await itemsRef.child(data.itemId).once("value")).val();
 
         let offersRef = itemsOffersRefs.child(item.itemOffersRefKey)
 
-        let swapsRef = firebase.database().ref('/swaps');
 
         await offersRef.child(data.offerId).remove();
         await swapsRef.child(data.swapId).remove();
+        await usersSwapsRefs.child(data.offeredby.swapsRefKey).child(data.swapId).remove()
 
         response = {
             status: 'success',
