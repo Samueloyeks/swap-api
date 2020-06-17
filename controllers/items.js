@@ -879,6 +879,12 @@ let getItemsByFilters = async function (data) {
             }
         }
 
+        // FILTER BY PRICE 
+        if (data.filterByPrice) {
+            filteredItems = filteredItems.sort((a, b) => {
+                return a.price > b.price
+            })
+        }
         // FILTER BY LOCATION 
         if (data.filterByLocation &&
             (data.location.latitude &&
@@ -894,12 +900,6 @@ let getItemsByFilters = async function (data) {
             });
         }
 
-        // FILTER BY PRICE 
-        if (data.filterByPrice) {
-            filteredItems = filteredItems.sort((a, b) => {
-                return a.price > b.price
-            })
-        }
     })
 
 
