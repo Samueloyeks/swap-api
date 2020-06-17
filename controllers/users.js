@@ -271,7 +271,7 @@ let update = function (data) {
         userRef.once(('value'), async function (snap) {
             let userData = await snap.val();
 
-            userData.fullName = fullName; 
+            userData.fullName = fullName;
             userData.username = username;
             userData.usernameLower = username.toLowerCase();
             userData.phoneNumber = phoneNumber;
@@ -437,6 +437,10 @@ let deleteAccount = function (data) {
 
         let itemsRef = firebase.database().ref('/items');
         let swapsRef = firebase.database().ref('/swaps');
+        let usersItemsRefs = firebase.database().ref(`/usersItemsRefs`)
+        let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+        let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+        let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
 
         let response = new Object();
 
@@ -461,27 +465,31 @@ let deleteAccount = function (data) {
                     let userSnap = await userRef.once('value');
 
                     let user = await userSnap.val();
-                    let userSwaps = user.swaps;
 
-                    for (var key in userSwaps) {
+                    //REMOVE SWAPS
+                    let userSwapsRef = user.swapsRefKey;
+                    let userSwapsSnap = usersSwapsRefs.child(userSwapsRef).once("value")
+                        (await userSwapsSnap).forEach(async function (snap) {
+                            let swapKey = snap.key;
+                            await swapsRef.child(swapKey).remove()
+                        })
 
-                        await swapsRef.child(key).remove();
+                    //REMOVE FAVORITES REF
+                    let userFavoritesRef = user.favoritesRefKey;
+                    await usersFavoritesRefs.child(userFavoritesRef).remove()
 
-                    }
+                    //REMOVE LIKES REF
+                    let userLikesRef = user.likesRefKey;
+                    await usersLikesRefs.child(userLikesRef).remove()
 
-                    let itemsSnap = await itemsRef.once('value');
-                    let items = itemsSnap.val();
+                    //REMOVE ITEMS
+                    let userItemsRef = user.itemsRefKey;
+                    let userItemsSnap = usersItemsRefs.child(userItemsRef).once("value")
+                        (await userItemsSnap).forEach(async function (snap) {
+                            let itemKey = snap.key;
+                            await itemsRef.child(itemKey).remove()
+                        })
 
-                    for (var key in items) {
-
-                        let item = items[key]
-                        if (item.postedby == userModel.uid) {
-
-                            await itemsRef.child(key).remove();
-
-                        }
-
-                    }
 
                     await userRef.remove()
 
