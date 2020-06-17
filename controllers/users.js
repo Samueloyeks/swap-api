@@ -130,12 +130,13 @@ let login = function (data) {
                     // delete userModel['password']; 
                     userModel['uid'] = snapshot.key;
                     userModel.lastSeen = Date(result.user.lastLoginAt);
-                    userModel.dateCreated = Date(result.user.createdAt);
                     userModel.verified = result.user.emailVerified;
 
                     firebase.database().ref(`/userProfiles/` + result.user.uid).update({
-                        fcmToken:data.fcmToken,
-                        deviceType:data.deviceType
+                        fcmToken: data.fcmToken,
+                        deviceType: data.deviceType,
+                        lastSeen: userModel.lastSeen,
+                        verified: userModel.verified
                     })
 
                     if (userModel.verified) {
@@ -254,7 +255,7 @@ let update = function (data) {
         }
         let userRef = firebase.database().ref(`/userProfiles/` + uid)
 
- 
+
         if (profilePictureObj.image) {
             let uploadResponse = await services.upload(profilePictureObj);
 
@@ -270,14 +271,15 @@ let update = function (data) {
         userRef.once(('value'), async function (snap) {
             let userData = await snap.val();
 
-            userData.fullName = fullName;
+            userData.fullName = fullName; 
             userData.username = username;
+            userData.usernameLower = username.toLowerCase();
             userData.phoneNumber = phoneNumber;
             userData.profilePicture = profilePicture
 
             await userRef.set(userData).then((result) => {
 
-                response = { 
+                response = {
                     status: 'success',
                     message: 'data updated successfully',
                     data: null
@@ -648,7 +650,7 @@ let isUsernameTaken = function (data) {
 
 }
 
-let updateFcmToken = function (data){
+let updateFcmToken = function (data) {
     return new Promise(async function (resolve, reject) {
         let response = new Object();
 
