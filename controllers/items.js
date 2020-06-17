@@ -882,7 +882,7 @@ let getItemsByFilters = async function (data) {
         // FILTER BY PRICE 
         if (data.filterByPrice) {
             filteredItems = filteredItems.sort(function(a, b){
-                return a.price > b.price
+                return parseInt(a.price) > parseInt(b.price)
             })
         }
         // FILTER BY LOCATION 
