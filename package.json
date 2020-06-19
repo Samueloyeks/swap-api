@@ -14,6 +14,7 @@
     "basic-auth": "^2.0.1",
     "blob": "^0.1.0",
     "cross-blob": "^1.2.2",
+    "dotenv": "^8.2.0",
     "firebase": "^7.14.2",
     "mime": "^2.4.5",
     "nodemon": "^2.0.3",

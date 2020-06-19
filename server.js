@@ -1,4 +1,5 @@
 
+require('dotenv').config()
 const http = require('http');
 const utilities = require('./controllers/utilities');
 var fs = require('fs');

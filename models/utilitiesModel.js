@@ -69,14 +69,17 @@ exports.resCodes = {
 }
 
 exports.appConfig={
-    appState:'live',
-    serverURL:global.serverURL,
+    appState:'test',
+    serverURL:global.serverURL, 
     liveHostName:'0.0.0.0',
     livePort:process.env.PORT || 3000,
     testHostName:'127.0.0.1', 
     // testHostName:'192.168.56.1',
     testPort:process.env.PORT || 3000,
-    apiUser:"am9objpzbWl0aA==",
-    apiPass:"JiZAQEFBMTE6NjcmOCMh"
+    // apiUser:"am9objpzbWl0aA==",
+    // apiPass:"JiZAQEFBMTE6NjcmOCMh"
+    apiUser:process.env.API_USERNAME,
+    apiPass:process.env.API_PASSWORD
+
 }
 // 
