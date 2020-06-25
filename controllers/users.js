@@ -515,67 +515,6 @@ let deleteAccount = function (data) {
         resolve(response)
 
     })
-    return new Promise(async function (resolve, reject) {
-        let userModel = require('../models/userModel');
-        userModel = userModel.user;
-
-        let itemsRef = firebase.database().ref('/items');
-        let swapsRef = firebase.database().ref('/swaps');
-
-        let response = new Object();
-
-        try {
-
-            userModel.uid = data.uid;
-
-        } catch (ex) {
-            // data validation failed
-            console.log('fetchUserById:data validation failed')
-            response = {
-                status: 'error',
-                message: 'error deleting account',
-                data: null
-            }
-            reject(response);
-        }
-
-        let userRef = firebase.database().ref(`/userProfiles/` + userModel.uid);
-
-        let userSnap = await userRef.once('value');
-
-        let user = await userSnap.val();
-        let userSwaps = user.swaps;
-
-        for (var key in userSwaps) {
-
-            await swapsRef.child(key).remove();
-
-        }
-
-        let itemsSnap = await itemsRef.once('value');
-        let items = itemsSnap.val();
-
-        for (var key in items) {
-
-            let item = items[key]
-            if (item.postedby == userModel.uid) {
-
-                await itemsRef.child(key).remove();
-
-            }
-
-        }
-
-        await userRef.remove()
-
-        response = {
-            status: 'success',
-            message: 'Account deleted successfully',
-            data: null
-        }
-        resolve(response);
-
-    });
 }
 
 let reportUser = function (data) {

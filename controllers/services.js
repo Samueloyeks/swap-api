@@ -19,7 +19,7 @@ let upload = async function (data) {
 
                 // FIREBASE STORAGE 
                 var buffer = Buffer.from(data.image.replace(/^data:image\/[a-z]+;base64,/, ""), 'base64');
-                const imageRef = firebase.storage().ref(`items/${uuid.v1()}.png`);
+                const imageRef = firebase.storage().ref(`images/${uuid.v1()}.png`);
                 await imageRef.put(buffer, { 'contentType': 'image/png' });
                 downloadURL = await imageRef.getDownloadURL();
 
@@ -34,10 +34,9 @@ let upload = async function (data) {
                     data: { 'url': downloadURL }
                 }
 
-                resolve(response); 
+                resolve(response);
 
             } catch (ex) {
-                console.log(ex)
                 response = {
                     status: 'error',
                     message: 'Could not Upload Image',
@@ -61,7 +60,7 @@ let multipleUpload = function (data) {
         var imageUrls = [];
 
         if (data.images) {
-            await Promise.all(data.images.map(async (data,index) => {
+            await Promise.all(data.images.map(async (data, index) => {
                 var uploadResponse = await upload(data);
 
                 if (uploadResponse.status == 'success') {
@@ -141,6 +140,30 @@ let multipleUploadEdit = function (data) {
     })
 }
 
+let deleteImage = async function (data) {
+    let response = new Object();
+
+    let imageUrl = data.imageUrl
+    var targetRef = firebase.storage().refFromURL(imageUrl)
+
+    await targetRef.delete().then(function () {
+        response = {
+            status: 'success',
+            message: 'Image Deleted Successfully',
+            data: null
+        }
+
+    }).catch(function (error) {
+        response = {
+            status: 'error',
+            message: 'Could not Delete Image',
+            data: null
+        }
+    });
+
+    return response;
+}
+
 let dataURItoBlob = function (data) {
     let binary = data.split(',')[1]
     binary = Buffer.from(binary, 'base64').toString()
@@ -177,12 +200,12 @@ let base64toBlob = function (base64Data, contentType) {
 }
 
 const writeFile = (path, data, opts = 'base64') =>
-  new Promise((resolve, reject) => {
-    require('fs').writeFile(path, data, opts, (err) => {
-      if (err) reject(err)
-      else resolve()
+    new Promise((resolve, reject) => {
+        require('fs').writeFile(path, data, opts, (err) => {
+            if (err) reject(err)
+            else resolve()
+        })
     })
-  })
 
 
 
@@ -191,5 +214,6 @@ module.exports = {
     multipleUpload,
     upload,
     base64toBlob,
-    multipleUploadEdit
+    multipleUploadEdit,
+    deleteImage
 }
