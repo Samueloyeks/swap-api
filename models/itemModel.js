@@ -12,11 +12,9 @@ exports.item = {
     "quantity":null,
     "swapped":null,
     "likes":null,
-    "liked":null,
-    "likedby":null,
-    "favorited":null,
-    "swapDetails":null,
     "location":null,
-    "offers":null,
-    "timestamp":null
+    "timestamp":null,
+    "itemLikersRefKey":null,
+    "itemOffersRefKey":null,
+    "offers":null
 } 

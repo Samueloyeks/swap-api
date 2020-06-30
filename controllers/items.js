@@ -28,6 +28,7 @@ let uploadItem = function (data) {
             itemModel.likes = 0;
             itemModel.timestamp = firebase.database.ServerValue.TIMESTAMP;
             itemModel.location = data.location
+            itemModel.offers = 0
 
 
         } catch (ex) {
@@ -1455,6 +1456,10 @@ let sendOffer = function (data) {
         })
 
 
+        await itemsRef.child(data.itemId).transaction(function (offers) {
+            offers = (offers) ? (offers + 1) : 1
+            return offers;
+        })
         // let offerer = (await usersRef.child(data.offeredby).once("value")).val();
 
         // await usersSwapsRefs.child(offerer.swapsRefKey).child(swapKey).set({
@@ -1630,6 +1635,11 @@ let declineOffer = function (data) {
         await offersRef.child(data.offerId).remove();
         await swapsRef.child(data.swapId).remove();
         await usersSwapsRefs.child(data.offeredby.swapsRefKey).child(data.swapId).remove()
+
+        await itemsRef.child(data.itemId).transaction(function (offers) {
+            offers = (offers) ? (offers - 1) : 0
+            return offers;
+        })
 
         response = {
             status: 'success',
@@ -1886,6 +1896,11 @@ let withdrawOffer = async function (data) {
     await itemOfferRef.remove();
     await swapRef.remove();
     await userSwapRef.remove();
+
+    await itemsRef.child(data.itemId).transaction(function (offers) {
+        offers = (offers) ? (offers - 1) : 0
+        return offers;
+    })
 
     response = {
         status: 'success',
