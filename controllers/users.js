@@ -73,9 +73,7 @@ let register = function (data) {
                 delete userModel['password'];
 
                 firebase.database().ref(`/userProfiles/${result.user.uid}`).set(userModel).then(() => {
-                    console.log('saved to firebase')
                     firebase.auth().currentUser.sendEmailVerification();
-                    console.log('email sent')
                 });
 
 
