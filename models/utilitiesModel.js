@@ -80,6 +80,4 @@ exports.appConfig={
     apiPass:"JiZAQEFBMTE6NjcmOCMh"
     // apiUser:process.env.API_USERNAME,
     // apiPass:process.env.API_PASSWORD
-
 }
-// 

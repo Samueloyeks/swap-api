@@ -1385,6 +1385,7 @@ let deleteItem = function (data) {
             })
 
         })
+        
         await usersItemsRefs.child(user.itemsRefKey).child(data.itemId).remove()
          itemsLikersRefs.child(item.itemLikersRefKey).remove();
          itemsOffersRefs.child(item.itemOffersRefKey).remove();
@@ -1456,10 +1457,11 @@ let sendOffer = function (data) {
         })
 
 
-        await itemsRef.child(data.itemId).transaction(function (offers) {
+        await itemsRef.child(data.itemId).child('offers').transaction(function (offers) {
             offers = (offers) ? (offers + 1) : 1
             return offers;
         })
+
         // let offerer = (await usersRef.child(data.offeredby).once("value")).val();
 
         // await usersSwapsRefs.child(offerer.swapsRefKey).child(swapKey).set({
@@ -1636,7 +1638,7 @@ let declineOffer = function (data) {
         await swapsRef.child(data.swapId).remove();
         await usersSwapsRefs.child(data.offeredby.swapsRefKey).child(data.swapId).remove()
 
-        await itemsRef.child(data.itemId).transaction(function (offers) {
+        await itemsRef.child(data.itemId).child('offers').transaction(function (offers) {
             offers = (offers) ? (offers - 1) : 0
             return offers;
         })
@@ -1897,7 +1899,7 @@ let withdrawOffer = async function (data) {
     await swapRef.remove();
     await userSwapRef.remove();
 
-    await itemsRef.child(data.itemId).transaction(function (offers) {
+    await itemsRef.child(data.itemId).child('offers').transaction(function (offers) {
         offers = (offers) ? (offers - 1) : 0
         return offers;
     })
