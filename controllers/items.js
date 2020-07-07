@@ -687,6 +687,103 @@ let getItemsByUid = async function (data) {
 
 }
 
+let silentlyGetItemsByUid = async function (data) {
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let usersRef = firebase.database().ref('/userProfiles');
+    let itemsRef = firebase.database().ref('/items');
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+    let usersItemsRefs = firebase.database().ref('/usersItemsRefs')
+    // .orderByChild('timestamp');
+
+    let user = (await usersRef.child(data.uid).once("value")).val()
+
+
+    let userItemsRef = usersItemsRefs
+        .child(user.itemsRefKey)
+        .orderByChild('timestamp')
+        .endAt((data.lastItemStamp) ? parseInt(data.lastItemStamp) : null)
+        .limitToLast(data.pageSize)
+
+    let items = [];
+    let itemIds = [];
+
+
+    let itemsSnap = await userItemsRef.once("value");
+
+    itemsSnap.forEach(function (snap) {
+        if (snap.exists()) {
+            let itemId = snap.key;
+            itemIds.push(itemId);
+        }
+    })
+
+    await Promise.all(itemIds.map(async function (itemId, index) {
+        let itemSnap = await itemsRef.child(itemId).once("value");
+
+        if (itemSnap.exists()) {
+            let item = await itemSnap.val();
+
+            let categories = item.categories
+            let postedby = item.postedby
+
+            let posterSnap = await usersRef.child(postedby).once("value");
+            let poster = posterSnap.val();
+
+            item.postedby = poster;
+
+            // let userSnap = await usersRef.child(data.uid).once("value");
+            // let user = userSnap.val();
+
+            let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+            if (userLikedItemsSnap.exists()) {
+                let userLikedItems = userLikedItemsSnap.val();
+                item.liked = (userLikedItems[item.id]) ? true : false;
+            } else {
+                item.liked = false;
+            }
+
+            let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+            if (userFavoriteItemsSnap.exists()) {
+                let userFavoriteItems = userFavoriteItemsSnap.val();
+                item.favorited = (userFavoriteItems[item.id]) ? true : false;
+            } else {
+                item.favorited = false;
+            }
+
+            await Promise.all(categories.map(async function (categoryId, index) {
+
+                let categoriesSnap = await categoriesRef.once("value");
+                let fullCategories = categoriesSnap.val();
+
+                categories[index] = fullCategories.find(category =>
+                    category.id == categoryId
+                )
+
+            }))
+
+            items[index] = item
+        }
+    }))
+
+    if (items.length !== 0) {
+        items.pop()
+    }
+
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: items,
+    }
+
+    return response;
+
+}
+
 let getUserItemsByUid = async function (data) {
 
     let response = new Object();
@@ -1870,6 +1967,144 @@ let getAllSwaps = async function (data) {
 
 }
 
+let silentlyGetAllSwaps = async function (data) {
+
+    let response = new Object();
+    let categoriesRef = firebase.database().ref('/categories');
+    let swapsRef = firebase.database().ref('/swaps')
+    let usersRef = firebase.database().ref('/userProfiles');
+    let usersSwapsRefs = firebase.database().ref(`/usersSwapsRefs`)
+    let usersLikesRefs = firebase.database().ref(`/usersLikesRefs`)
+    let usersFavoritesRefs = firebase.database().ref(`/usersFavoritesRefs`)
+
+
+    let user = (await usersRef.child(data.uid).once("value")).val()
+    let lastSwapStamp
+
+    let userSwapsRef = usersSwapsRefs
+        .child(user.swapsRefKey)
+        .orderByChild('timestamp')
+        .endAt((data.lastSwapStamp) ? parseInt(data.lastSwapStamp) : null)
+        .limitToLast(data.pageSize)
+
+    let swaps = [];
+    let swapIds = [];
+
+    let swapsSnap = await userSwapsRef.once("value");
+
+    swapsSnap.forEach(function (snap) {
+        if (snap.exists()) {
+            let swapId = snap.key;
+            swapIds.push(swapId);
+        }
+    })
+
+
+    await Promise.all(swapIds.map(async function (swapId, index) {
+        let swapSnap = await swapsRef.child(swapId).once("value");
+        if (swapSnap.exists()) {
+            let swap = await swapSnap.val();
+
+            let postedby = swap.postedby
+            let offeredby = swap.offeredby
+
+            let posterSnap = await usersRef.child(postedby).once("value");
+            let poster = posterSnap.val();
+
+            let offererSnap = await usersRef.child(offeredby).once("value");
+            let offerer = offererSnap.val();
+
+            swap.postedby = poster;
+            swap.offeredby = offerer
+
+            // let userSnap = await usersRef.child(data.uid).once("value");
+            // let user = userSnap.val();
+
+            let itemId = swap.itemId;
+            let itemSnap = await firebase.database().ref('/items').child(itemId).once('value');
+            let item = itemSnap.val();
+
+            swap.item = item
+
+            let offerItemIds = swap.offerItemIds
+            let offerItems = []
+
+            // item.postedby = user;
+
+            let userLikedItemsSnap = await usersLikesRefs.child(user.likesRefKey).once("value")
+
+            if (userLikedItemsSnap.exists()) {
+                let userLikedItems = userLikedItemsSnap.val();
+                swap.item.liked = (userLikedItems[swap.item.id]) ? true : false;
+            } else {
+                swap.item.liked = false;
+            }
+
+            let userFavoriteItemsSnap = await usersFavoritesRefs.child(user.favoritesRefKey).once("value")
+
+            if (userFavoriteItemsSnap.exists()) {
+                let userFavoriteItems = userFavoriteItemsSnap.val();
+                swap.item.favorited = (userFavoriteItems[swap.item.id]) ? true : false;
+            } else {
+                swap.item.favorited = false;
+            }
+
+            await Promise.all(offerItemIds.map(async function (offerItemId, index) {
+
+                let offerItemSnap = await firebase.database().ref('/items').child(offerItemId.id).once('value');
+                let offerItem = offerItemSnap.val();
+
+                let offerItemCategories = offerItem.categories
+
+                await Promise.all(offerItemCategories.map(async function (categoryId, index) {
+
+                    let categoriesSnap = await categoriesRef.once("value");
+                    let fullCategories = categoriesSnap.val();
+
+                    offerItemCategories[index] = fullCategories.find(category =>
+                        category.id == categoryId
+                    )
+
+                }))
+
+                offerItems.push(offerItem)
+
+            }))
+
+            let categories = swap.item.categories
+
+
+            await Promise.all(categories.map(async function (categoryId, index) {
+
+                let categoriesSnap = await categoriesRef.once("value");
+                let fullCategories = categoriesSnap.val();
+
+                categories[index] = fullCategories.find(category =>
+                    category.id == categoryId
+                )
+
+            }))
+
+            swap.offerItems = offerItems;
+
+            swaps[index] = swap
+        }
+    }))
+
+    if (swaps.length !== 0) {
+        swaps.pop();
+    }
+
+    response = {
+        status: 'success',
+        message: 'Items loaded',
+        data: swaps
+    }
+
+    return response;
+
+}
+
 let withdrawOffer = async function (data) {
 
     let response = new Object();
@@ -1998,12 +2233,14 @@ module.exports = {
     deleteItem,
     getItemsByPrice,
     getItemsByUid,
+    silentlyGetItemsByUid,
     getUserItemsByUid,
     sendOffer,
     acceptOffer,
     declineOffer,
     getItemOffers,
     getAllSwaps,
+    silentlyGetAllSwaps,
     markItemAsSwapped,
     withdrawOffer,
     rateSwap
