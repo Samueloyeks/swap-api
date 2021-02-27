@@ -37,7 +37,7 @@ let uploadItem = function (data) {
             console.log('item upload:data validation failed')
             response = {
                 status: 'error',
-                message: 'Filed to upload Item',
+                message: 'Failed to upload Item',
                 data: null
             }
             reject(response);
