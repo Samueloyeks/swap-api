@@ -151,9 +151,9 @@ let login = function (data) {
                             data: userModel
                         }
                         reject(response);
-                    }
+                    } 
 
-
+ 
                     //Email sent
                 });
 
